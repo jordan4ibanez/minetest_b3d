@@ -33,7 +33,12 @@ Plugin.register("minetest_b3d",{
           // Blockbench.showToastMessage("hi", 5)
           // Blockbench.notification("hi")
 
-          
+          // This is a hardcode on my workstation so I can just keep running this.
+          // ~~oo a peak into a developer's computer, spooky~~
+
+          Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
+            content: "test"
+          })
 
 
 
