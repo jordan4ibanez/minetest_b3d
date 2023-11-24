@@ -106,13 +106,9 @@ class WorkerContainer {
 
   appendString(string) {
     const encodedStringArray = encoder.encode(string)
-    for (const char of encodedStringArray) {
-      print("char: " + char)
-      this.appendChar(char)      
-    }
-    // encodedStringArray.forEach((char) => {
-    //   this.appendChar(char)
-    // })
+    encodedStringArray.forEach((char) => {
+      this.appendChar(char)
+    })
   }
 
 }
