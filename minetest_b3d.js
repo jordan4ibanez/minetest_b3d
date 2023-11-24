@@ -83,9 +83,28 @@ module.exports = {
 var button;
 const print = console.log;
 
+/**
+ * Can only pass ArrayBuffers with uint8 encoding into this.
+ */
+function addToBuffer(buffer, newRawData) {
+  const currentLengthIndex = buffer.byteLength;
+  const dataWidth = newRawData.byteLength;
+  const temp = new Uint8Array(buffer.byteLength + dataWidth)
+  // Copy over the old buffer
+  for (let i = 0; i < buffer.byteLength; i++) {
+    temp[i] = buffer[i];
+  }
+  // New values.
+  for (let i = 0; i < dataWidth; i++) {
+    temp[currentLengthIndex + i] = newRawData[i];
+  }
+  return temp;
+}
 
-function writeInt(value) {
-  return struct.pack("<i", value)
+function writeInt(buffer, value) {
+  const s = struct("<i")
+  const newRawData = new Uint8Array(s.pack(value))
+  return addToBuffer(buffer, newRawData)
 }
 
 function writeFloat(value) {
@@ -136,6 +155,28 @@ const normal = new THREE.Vector3();
 const uv = new THREE.Vector2();
 const face = [];
 
+let tempBuffer = new Uint8Array()
+
+function exportIt() {
+  //todo: Eventually, only export selected things as an option.
+
+  tempBuffer = new Uint8Array();
+
+  tempBuffer = writeInt(tempBuffer, 1)
+  tempBuffer = writeInt(tempBuffer, 4)
+
+  print("cool")
+  print(tempBuffer)
+  // print(writeInt(1))
+
+  // addToTemp(1)
+  // print(tempBuffer)
+
+  scene.traverse(function(child){
+    if (child instanceof THREE.Mesh) parseMesh(child);
+  })
+}
+
 function parseMesh(mesh) {
   console.log("--------------------------------")
 
@@ -159,13 +200,7 @@ function parseMesh(mesh) {
 
 }
 
-function exportIt() {
-  //todo: Eventually, only export selected things as an option.
 
-  scene.traverse(function(child){
-    if (child instanceof THREE.Mesh) parseMesh(child);
-  })
-}
 
 
 Plugin.register("minetest_b3d", {
