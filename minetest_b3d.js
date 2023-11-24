@@ -1,5 +1,4 @@
 (function () {
-// ? END - struct.js
 
 var button;
 const print = console.log;
