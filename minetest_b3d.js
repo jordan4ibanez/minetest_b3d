@@ -144,6 +144,11 @@ function writeChunk(name, value) {
 }
 
 
+const IdentifierMeshParts = {
+  Positions: "positions",
+  TextureCoordinates: "textureCoordinates",
+  Nodes: "nodes",
+}
 
 const cube_face_normals = {
 	north: [ 0,  0, -1],
@@ -175,10 +180,25 @@ function exportIt() {
   // Version number.
   tempBuffer = writeInt(tempBuffer, 1)
 
-  
+  // Have to iterate the scene multiple times because of the way B3D functions.
+  for (const [meshPart,] of Object.entries(IdentifierMeshParts)) {
+    print("Parsing: " + meshPart)
+    scene.traverse(function(child){
+      switch (meshPart) {
+        case IdentifierMeshParts.TextureCoordinates: {
+          // print("Doing texture things")
+          if (child instanceof THREE.Mesh) {
+            parseTextureCoordinates(child, meshPart);
+          }
+          break;
+        }
+        // case 
+      }
+    })
+  }
 
-  scene.traverse(function(child){
-    if (child instanceof THREE.Mesh) parseMesh(child);
+  Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
+    content: tempBuffer
   })
 }
 
@@ -200,8 +220,9 @@ function parseMesh(mesh) {
   if (element instanceof Cube) {
     print(" that's a cube all right")
   }
+}
 
-
+function parseTextureCoordinates(mesh) {
 
 }
 
