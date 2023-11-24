@@ -44,6 +44,10 @@ class WorkerContainer {
 
   // A nice view of the buffer. Brings additional features.
   view = new DataView(this.buffer)
+  
+  getCurrent(byteSize) {
+    return this.buffer.byteLength - byteSize
+  }
 
   grow(bytes) {
     this.buffer.resize(this.buffer.byteLength + bytes)
@@ -54,9 +58,52 @@ class WorkerContainer {
   //   this.buffer.resize(0)
   // }
 
+  appendHeader(name, numberOfElements) {
+    this.appendString(name)
+    this.appendInt32(numberOfElements)
+  }
+
+  appendQuaternion(x,y,z,w) {
+    // W is actually first but don't tell anyone.
+    this.appendFloat(w)
+    this.appendFloat(x)
+    this.appendFloat(y)
+    this.appendFloat(z)
+  }
+  
+  appendVec2(x,y) {
+    this.appendFloat(x)
+    this.appendFloat(y)
+  }
+
+  appendVec3(x,y,z) {
+    this.appendFloat(x)
+    this.appendFloat(y)
+    this.appendFloat(z)
+  }
+
+  appendFloat(float) {
+    const sizeInBytes = 4
+    this.grow(sizeInBytes)
+    this.view.setFloat32(this.getCurrent(sizeInBytes), float)
+  }
+
+  appendInt32(int32) {
+    const sizeInBytes = 4
+    this.grow(sizeInBytes)
+    this.view.setInt32(this.getCurrent(sizeInBytes), int32)
+  }
+
+  appendInt8(int8) {
+    const sizeInBytes = 1
+    this.grow(sizeInBytes)
+    this.view.setInt8(this.getCurrent(sizeInBytes), int8)
+  }
+
   appendUint8(uint8) {
-    this.grow(1)
-    this.view.setUint8(this.buffer.byteLength - 1, uint8)
+    const sizeInBytes = 1
+    this.grow(sizeInBytes)
+    this.view.setUint8(this.getCurrent(sizeInBytes), uint8)
   }
 
   appendChar(charUint8) {
@@ -80,13 +127,130 @@ function exportIt() {
   //todo: Eventually, only export selected things as an option.
 
   
-  const texCoords = binContainers.textureCoordinates
+  //! Here we are trying to make a triangle.
+
+  // Using texcoords as a prototyping container.
+  const buffer = binContainers.textureCoordinates
+
+  //? A hardcoded cube for debugging/prototyping.
 
   // Header.
-  texCoords.appendString("BB3D")
+  buffer.appendString("BB3D")
   
   // B3D Version 1.
-  texCoords.appendUint8(1)
+  buffer.appendUint8(1)
+
+
+  //! Texture information.
+
+  // Header & number of elements.
+  buffer.appendHeader("TEXS", 1)
+
+  // Texture name(s).
+  buffer.appendString("test.png")
+
+  // Texture flag 1. (What even is this?)
+  buffer.appendInt32(1)
+
+  // Texture flag 2. (blend)
+  buffer.appendInt32(2)
+
+  // Position. X, Y
+  buffer.appendVec2(0,0)
+
+  // Scale. X, Y
+  buffer.appendVec2(1,1)
+
+  // Rotation, in radians.
+  buffer.appendFloat(0)
+
+
+  //! Brushes. (WTF is brushes??)
+
+  // Header & number of elements.
+  buffer.appendHeader("BRUS", 0)
+
+  //! Nodes.
+
+  // Header.
+  buffer.appendHeader("root_node", 1)
+
+  // Position. Vec3.
+  buffer.appendVec3(0,0,0)
+
+  // Scale. Vec3.
+  buffer.appendVec3(1,1,1)
+
+  // Rotation. Quaternion.
+  buffer.appendQuaternion(0,0,0,1)
+
+  //! Mesh.
+
+  // Header & number of elements.
+  buffer.appendHeader("MESH", 1)
+
+  // Brush ID.
+  buffer.appendInt32(-1)
+
+
+  //! Vertices.
+
+  // Header & number of elements.
+  buffer.appendHeader("VRTS", 1)
+
+  // Texture coordinate sets per vertex. Will always be 1 because blockbench doesn't do advanced blender features. (I think?)
+  buffer.appendInt32(1)
+
+  // Components (x,y,z) per set. Will always be 2 because blockbench models are simple texture maps. So (x,y).
+  buffer.appendInt32(2)
+
+  // So this is an array. So I'll just document it in the order it appears.
+
+  // Positions. XYZ
+  // Normals. We'll go with -Z. XYZ
+  // Texture coordinates.
+
+//{
+  buffer.appendVec3(-1,-1,0) // position
+  buffer.appendVec3(0,0,-1)  // normal
+  buffer.appendVec3(0,1)     // texture coordinate
+
+  buffer.appendVec3(1,-1,0)  // position
+  buffer.appendVec3(0,0,-1)  // normal
+  buffer.appendVec3(1,1)     // texture coordinate
+
+  buffer.appendVec3(0,1,0)   // position
+  buffer.appendVec3(0,0,-1)  // normal
+  buffer.appendVec3(0.5,0)   // texture coordinate
+//}
+
+  //! Tris. (vertex index winding [aka indices])
+
+  // Header & number of elements.
+  buffer.appendHeader("TRIS", 1)
+
+  // Brush ID. -1 is disabled basically.
+  buffer.appendInt32(-1)
+
+  // Indices.
+//{
+  buffer.appendInt32(0)
+  buffer.appendInt32(1)
+  buffer.appendInt32(2)
+//}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   // print(view.byteLength)
@@ -96,8 +260,7 @@ function exportIt() {
     content: binContainers.textureCoordinates.buffer
   })
 
-
-
+  print("exported minecart.")
 
 
 
