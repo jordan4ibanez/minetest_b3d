@@ -170,10 +170,45 @@ const normal = new THREE.Vector3();
 const uv = new THREE.Vector2();
 const face = [];
 
-let tempBuffer = new Uint8Array()
+// Convert string literals to uint8.
+const encoder = new TextEncoder();
 
-let buffers = {
+class WorkerContainer {
+    
+  constructor() {
+    this.buffer = new ArrayBuffer(0, {
+      // ~128 MB limit. A HUGE MODEL!
+      maxByteLength: 1000 * 1000 * 128
+    })
+    this.view = new DataView(this.buffer)
+  }
+
+  grow(bytes) {
+    this.buffer.resize(this.buffer.byteLength + bytes)
+  }
+
+  //* Disabled in case I accidentally call it, this is JS after all.
+  // reset() {
+  //   this.buffer.resize(0)
+  // }
   
+  appendChar(charUint8) {
+    this.grow(1)
+    print("newsize: " + this.view.byteLength);
+    this.view.setUint8(this.buffer.byteLength - 1, charUint8)
+  }
+
+  appendString(string) {
+    const encodedStringArray = encoder.encode(string)
+    encodedStringArray.forEach((char) => {
+      print("rawchar: " + char);
+      this.appendChar(char)
+    })
+  }
+}
+
+let binContainers = {
+  textureCoordinates: new WorkerContainer()
 }
 
 function exportIt() {
@@ -182,22 +217,22 @@ function exportIt() {
   // tempBuffer = new Uint8Array();
 
   // MEGA resizeable buffer.
-  const buffer = new ArrayBuffer(0, {
-    // ~256 MB limit. A HUGE MODEL!
-    maxByteLength: 4 * 1024 * 1024 * 4
-  });
+  // const buffer = new ArrayBuffer(0, {
+  //   // ~128 MB limit. A HUGE MODEL!
+  //   maxByteLength: 1000 * 1000 * 128
+  // });
 
   // A nice view.
-  const view = new DataView(buffer);
+  // const view = new DataView(buffer);
 
   // A way to encode strings to utf8. (uint8)
-  const encoder = new TextEncoder();
+  
 
 
-  print("is view? :" + ArrayBuffer.isView(view));
-  print("is resizeable? " + view.resizable);
+  // print("is view? :" + ArrayBuffer.isView(view));
+  // print("is resizeable? " + view.resizable);
 
-  print(view.byteLength)
+  // print(view.byteLength)
 
   //todo: This can be turned into pure functional via extension functions. like add 1 byte when uint8 adding etc
   
@@ -210,19 +245,14 @@ function exportIt() {
 
   // print(view)
 
-  const encArray = encoder.encode("hello there")
+  binContainers.textureCoordinates.appendString("Hello there");
 
-  encArray.forEach((number) => {
-    // view.resize(view.byteLength + 1)
-    view.buffer.resize(view.buffer.byteLength + 1)
-    view.setUint8(view.buffer.byteLength - 1, number)
-  })
 
-  print(view.byteLength)
+  // print(view.byteLength)
   // print("new bytelength: " + view.byteLength)
 
   Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
-    content: buffer
+    content: binContainers.textureCoordinates.buffer
   })
 
 
