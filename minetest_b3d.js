@@ -102,30 +102,40 @@ function addToBuffer(buffer, newRawData) {
 }
 
 function writeInt(buffer, value) {
-  const s = struct("<i")
-  const newRawData = new Uint8Array(s.pack(value))
+  const s = struct("<i");
+  const newRawData = new Uint8Array(s.pack(value));
+  return addToBuffer(buffer, newRawData);
+}
+
+function writeFloat(buffer, value) {
+  const s = struct("<f");
+  const newRawData = new Uint8Array(s.pack(value));
+  return addToBuffer(buffer, newRawData);
+}
+
+function writeFloatCouple(buffer, value1, value2) {
+  const s = struct("<ff");
+  const newRawData = new Uint8Array(s.pack(value1, value2));
+  return addToBuffer(buffer, newRawData);
+}
+
+function writeFloatTriplet(buffer, value1, value2, value3) {
+  const s = struct("<fff");
+  const newRawData = new Uint8Array(s.pack(value1, value2, value3));
+  return addToBuffer(buffer, newRawData);
+}
+
+function writeQuad(buffer, value1, value2, value3, value4) {
+  const s = struct("<ffff")
+  const newRawData = new Uint8Array(s.pack(value1, value2, value3, value4))
   return addToBuffer(buffer, newRawData)
 }
 
-function writeFloat(value) {
-  return struct.pack("<f", value)
-}
-
-function writeFloatCouple(value1, value2) {
-  return struct.pack("<ff", value1, value2)
-}
-
-function writeFloatTriplet(value1, value2, value3) {
-  return struct.pack("<fff", value1, value2, value3)
-}
-
-function writeQuad(value1, value2, value3, value4) {
-  return struct.pack("<ffff", value1, value2, value3, value4)
-}
-
-function writeString(value) {
-  const binaryFormat = "<%ds"%(len(value)+1)
-  return struct.pack(binaryFormat, encodeURI(value))
+function writeString(buffer, value) {
+  const binaryFormat = "<%ds" % (value.length + 1)
+  const s = struct(binaryFormat)
+  const newRawData = new Uint8Array(s.pack(buffer, encodeURI(value)))
+  return addToBuffer(buffer, newRawData)
 }
 
 function writeChunk(name, value) {
