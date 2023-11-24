@@ -175,28 +175,39 @@ let tempBuffer = new Uint8Array()
 function exportIt() {
   //todo: Eventually, only export selected things as an option.
 
-  tempBuffer = new Uint8Array();
+  // tempBuffer = new Uint8Array();
+
+  const buffer = new ArrayBuffer(32, {
+    // ~256 MB limit. A HUGE MODEL!
+    maxByteLength: 4 * 1024 * 1024 * 4
+  });
+  const test = new DataView(buffer);
+
+
 
   // Version number.
-  tempBuffer = writeInt(tempBuffer, 1)
-  tempBuffer = writeString(tempBuffer, "BB3D")
+  // tempBuffer = writeInt(tempBuffer, 1)
+  // tempBuffer = writeString(tempBuffer, "BB3D")
 
   // Have to iterate the scene multiple times because of the way B3D functions.
-  for (const [meshPart,] of Object.entries(IdentifierMeshParts)) {
-    print("Parsing: " + meshPart)
-    scene.traverse(function(child){
-      switch (meshPart) {
-        case IdentifierMeshParts.TextureCoordinates: {
-          // print("Doing texture things")
-          if (child instanceof THREE.Mesh) {
-            parseTextureCoordinates(child, meshPart);
-          }
-          break;
-        }
-        // case 
-      }
-    })
-  }
+  // for (const [meshPart,] of Object.entries(IdentifierMeshParts)) {
+  //   print("Parsing: " + meshPart)
+  //   scene.traverse(function(child){
+  //     switch (meshPart) {
+  //       case IdentifierMeshParts.TextureCoordinates: {
+  //         // print("Doing texture things")
+  //         if (child instanceof THREE.Mesh) {
+  //           parseTextureCoordinates(child, meshPart);
+  //         }
+  //         break;
+  //       }
+  //       // case 
+  //     }
+  //   })
+  // }
+  
+  // const blah = new Uint8Array.from([1,23,4,5,6,7])
+  // print(blah)
 
   Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
     content: tempBuffer
