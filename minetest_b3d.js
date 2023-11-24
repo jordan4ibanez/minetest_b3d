@@ -85,36 +85,34 @@ class WorkerContainer {
   appendFloat(float) {
     const sizeInBytes = 4
     this.grow(sizeInBytes)
-    this.view.setFloat32(this.getCurrent(sizeInBytes), float)
+    this.view.setFloat32(this.getCurrent(sizeInBytes), float, true)
   }
 
   appendInt32(int32) {
     const sizeInBytes = 4
     this.grow(sizeInBytes)
-    this.view.setInt32(this.getCurrent(sizeInBytes), int32)
+    this.view.setInt32(this.getCurrent(sizeInBytes), int32, true)
   }
 
   appendInt8(int8) {
     const sizeInBytes = 1
     this.grow(sizeInBytes)
-    this.view.setInt8(this.getCurrent(sizeInBytes), int8)
+    this.view.setInt8(this.getCurrent(sizeInBytes), int8, true)
   }
 
-  appendUint8(uint8) {
-    const sizeInBytes = 1
-    this.grow(sizeInBytes)
-    this.view.setUint8(this.getCurrent(sizeInBytes), uint8)
-  }
-
-  appendChar(charUint8) {
-    this.appendUint8(charUint8)
+  appendChar(charInt8) {
+    this.appendInt8(charInt8)
   }
 
   appendString(string) {
     const encodedStringArray = encoder.encode(string)
-    encodedStringArray.forEach((char) => {
-      this.appendChar(char)
-    })
+    for (const char of encodedStringArray) {
+      print("char: " + char)
+      this.appendChar(char)      
+    }
+    // encodedStringArray.forEach((char) => {
+    //   this.appendChar(char)
+    // })
   }
 
 }
@@ -135,129 +133,127 @@ function exportIt() {
   //? A hardcoded cube for debugging/prototyping.
 
   // Header.
-  buffer.appendString("BB3D")
-  
+  // buffer.appendString("BB3D")
+
   // B3D Version 1.
-  buffer.appendUint8(1)
+  buffer.appendInt32(100)
 
 
   //! Texture information.
 
   // Header & number of elements.
-  buffer.appendHeader("TEXS", 1)
+  // buffer.appendHeader("TEXS", 0)
 
-  // Texture name(s).
-  buffer.appendString("test.png")
+  // // Texture name(s).
+  // buffer.appendString("test.png")
 
-  // Texture flag 1. (What even is this?)
-  buffer.appendInt32(1)
+  // // Texture flag 1. (What even is this?)
+  // buffer.appendInt32(1)
 
-  // Texture flag 2. (blend)
-  buffer.appendInt32(2)
+  // // Texture flag 2. (blend)
+  // buffer.appendInt32(2)
 
-  // Position. X, Y
-  buffer.appendVec2(0,0)
+  // // Position. X, Y
+  // buffer.appendVec2(0,0)
 
-  // Scale. X, Y
-  buffer.appendVec2(1,1)
+  // // Scale. X, Y
+  // buffer.appendVec2(1,1)
 
-  // Rotation, in radians.
-  buffer.appendFloat(0)
+  // // Rotation, in radians.
+  // buffer.appendFloat(0)
 
 
   //! Brushes. (WTF is brushes??)
 
   // Header & number of elements.
-  buffer.appendHeader("BRUS", 0)
+  // buffer.appendHeader("BRUS", 0)
 
   //! Nodes.
 
   // Header.
-  buffer.appendHeader("root_node", 1)
+  // buffer.appendString("ye")
 
   // Position. Vec3.
-  buffer.appendVec3(0,0,0)
+  // buffer.appendVec3(0,0,0)
 
   // Scale. Vec3.
-  buffer.appendVec3(1,1,1)
+  // buffer.appendVec3(1,1,1)
 
   // Rotation. Quaternion.
-  buffer.appendQuaternion(0,0,0,1)
+  // buffer.appendQuaternion(0,0,0,1)
 
   //! Mesh.
 
-  // Header & number of elements.
-  buffer.appendHeader("MESH", 1)
+//   // Header & number of elements.
+//   buffer.appendHeader("MESH", 1)
 
-  // Brush ID.
-  buffer.appendInt32(-1)
+//   // Brush ID.
+//   buffer.appendInt32(-1)
 
 
-  //! Vertices.
+//   //! Vertices.
 
-  // Header & number of elements.
-  buffer.appendHeader("VRTS", 1)
+//   // Header & number of elements.
+//   buffer.appendHeader("VRTS", 1)
 
-  // Texture coordinate sets per vertex. Will always be 1 because blockbench doesn't do advanced blender features. (I think?)
-  buffer.appendInt32(1)
+//   // Texture coordinate sets per vertex. Will always be 1 because blockbench doesn't do advanced blender features. (I think?)
+//   buffer.appendInt32(1)
 
-  // Components (x,y,z) per set. Will always be 2 because blockbench models are simple texture maps. So (x,y).
-  buffer.appendInt32(2)
+//   // Components (x,y,z) per set. Will always be 2 because blockbench models are simple texture maps. So (x,y).
+//   buffer.appendInt32(2)
 
-  // So this is an array. So I'll just document it in the order it appears.
+//   // So this is an array. So I'll just document it in the order it appears.
 
-  // Positions. XYZ
-  // Normals. We'll go with -Z. XYZ
-  // Texture coordinates.
+//   // Positions. XYZ
+//   // Normals. We'll go with -Z. XYZ
+//   // Texture coordinates.
 
-//{
-  buffer.appendVec3(-1,-1,0) // position
-  buffer.appendVec3(0,0,-1)  // normal
-  buffer.appendVec3(0,1)     // texture coordinate
+// //{
+//   buffer.appendVec3(-1,-1,0) // position
+//   buffer.appendVec3(0,0,-1)  // normal
+//   buffer.appendVec3(0,1)     // texture coordinate
 
-  buffer.appendVec3(1,-1,0)  // position
-  buffer.appendVec3(0,0,-1)  // normal
-  buffer.appendVec3(1,1)     // texture coordinate
+//   buffer.appendVec3(1,-1,0)  // position
+//   buffer.appendVec3(0,0,-1)  // normal
+//   buffer.appendVec3(1,1)     // texture coordinate
 
-  buffer.appendVec3(0,1,0)   // position
-  buffer.appendVec3(0,0,-1)  // normal
-  buffer.appendVec3(0.5,0)   // texture coordinate
+//   buffer.appendVec3(0,1,0)   // position
+//   buffer.appendVec3(0,0,-1)  // normal
+//   buffer.appendVec3(0.5,0)   // texture coordinate
 //}
 
   //! Tris. (vertex index winding [aka indices])
 
   // Header & number of elements.
-  buffer.appendHeader("TRIS", 1)
+  // buffer.appendHeader("TRIS", 1)
 
-  // Brush ID. -1 is disabled basically.
-  buffer.appendInt32(-1)
+//   // Brush ID. -1 is disabled basically.
+//   buffer.appendInt32(-1)
 
-  // Indices.
-//{
-  buffer.appendInt32(0)
-  buffer.appendInt32(1)
-  buffer.appendInt32(2)
+//   // Indices.
+// //{
+//   buffer.appendInt32(0)
+//   buffer.appendInt32(1)
+//   buffer.appendInt32(2)
 //}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
   // print(view.byteLength)
   // print("new bytelength: " + view.byteLength)
 
+  const testing = new WorkerContainer()
+
+  testing.appendString("BB3D");
+
+  testing.appendInt32(buffer.buffer.byteLength);
+
+  for (const byte of new Uint8Array(buffer.buffer)) {
+    testing.appendInt8(byte)
+  }
+
   Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
-    content: binContainers.textureCoordinates.buffer
+    content: testing.buffer
   })
 
   print("exported minecart.")
