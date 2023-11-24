@@ -172,15 +172,10 @@ function exportIt() {
 
   tempBuffer = new Uint8Array();
 
+  // Version number.
   tempBuffer = writeInt(tempBuffer, 1)
-  tempBuffer = writeInt(tempBuffer, 4)
 
-  print("cool")
-  print(tempBuffer)
-  // print(writeInt(1))
-
-  // addToTemp(1)
-  // print(tempBuffer)
+  
 
   scene.traverse(function(child){
     if (child instanceof THREE.Mesh) parseMesh(child);
