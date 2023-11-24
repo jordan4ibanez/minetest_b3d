@@ -117,6 +117,8 @@ let binContainers = {
   textureCoordinates: new WorkerContainer()
 }
 
+
+
 function exportIt() {
   //todo: Eventually, only export selected things as an option.
 
@@ -138,9 +140,9 @@ function exportIt() {
   //! Texture information.
 
   // Header & number of elements.
-  // buffer.appendHeader("TEXS", 0)
+  buffer.appendString("TEXS", 0)
 
-  // // Texture name(s).
+  // Texture name(s).
   // buffer.appendString("test.png")
 
   // // Texture flag 1. (What even is this?)
