@@ -172,16 +172,62 @@ const face = [];
 
 let tempBuffer = new Uint8Array()
 
+let buffers = {
+  
+}
+
 function exportIt() {
   //todo: Eventually, only export selected things as an option.
 
   // tempBuffer = new Uint8Array();
 
-  const buffer = new ArrayBuffer(32, {
+  // MEGA resizeable buffer.
+  const buffer = new ArrayBuffer(0, {
     // ~256 MB limit. A HUGE MODEL!
     maxByteLength: 4 * 1024 * 1024 * 4
   });
-  const test = new DataView(buffer);
+
+  // A nice view.
+  const view = new DataView(buffer);
+
+  // A way to encode strings to utf8. (uint8)
+  const encoder = new TextEncoder();
+
+
+  print("is view? :" + ArrayBuffer.isView(view));
+  print("is resizeable? " + view.resizable);
+
+  print(view.byteLength)
+
+  //todo: This can be turned into pure functional via extension functions. like add 1 byte when uint8 adding etc
+  
+  // print("view length: " + view.byteLength);
+  // print("view offset: " + view.byteOffset);
+
+  // print(view)
+
+  // view.setUint8(0, 1)
+
+  // print(view)
+
+  const encArray = encoder.encode("hello there")
+
+  encArray.forEach((number) => {
+    // view.resize(view.byteLength + 1)
+    view.buffer.resize(view.buffer.byteLength + 1)
+    view.setUint8(view.buffer.byteLength - 1, number)
+  })
+
+  print(view.byteLength)
+  // print("new bytelength: " + view.byteLength)
+
+  Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
+    content: buffer
+  })
+
+
+
+
 
 
 
@@ -208,10 +254,6 @@ function exportIt() {
   
   // const blah = new Uint8Array.from([1,23,4,5,6,7])
   // print(blah)
-
-  Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
-    content: tempBuffer
-  })
 }
 
 function parseMesh(mesh) {
