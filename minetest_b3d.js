@@ -132,9 +132,9 @@ function writeQuad(buffer, value1, value2, value3, value4) {
 }
 
 function writeString(buffer, value) {
-  const binaryFormat = "<%ds" % (value.length + 1)
+  const binaryFormat = "<" + (value.length + 1) + "s"
   const s = struct(binaryFormat)
-  const newRawData = new Uint8Array(s.pack(buffer, encodeURI(value)))
+  const newRawData = new Uint8Array(s.pack(encodeURI(value)))
   return addToBuffer(buffer, newRawData)
 }
 
@@ -179,6 +179,7 @@ function exportIt() {
 
   // Version number.
   tempBuffer = writeInt(tempBuffer, 1)
+  tempBuffer = writeString(tempBuffer, "BB3D")
 
   // Have to iterate the scene multiple times because of the way B3D functions.
   for (const [meshPart,] of Object.entries(IdentifierMeshParts)) {
