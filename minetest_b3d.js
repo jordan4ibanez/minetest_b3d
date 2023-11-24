@@ -55,14 +55,11 @@ class WorkerContainer {
   
   appendChar(charUint8) {
     this.grow(1)
-    print("newsize: " + this.view.byteLength);
     this.view.setUint8(this.buffer.byteLength - 1, charUint8)
   }
-
   appendString(string) {
     const encodedStringArray = encoder.encode(string)
     encodedStringArray.forEach((char) => {
-      print("rawchar: " + char);
       this.appendChar(char)
     })
   }
