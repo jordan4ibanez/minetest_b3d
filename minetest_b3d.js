@@ -31,7 +31,8 @@ const normal = new THREE.Vector3();
 const uv = new THREE.Vector2();
 const face = [];
 
-// Convert string literals to uint8.
+// A way to encode strings to utf8. (uint8)
+// Convert string literals to uint8[] (Uint8Array).
 const encoder = new TextEncoder();
 
 class WorkerContainer {
@@ -69,7 +70,7 @@ class WorkerContainer {
       this.appendChar(char)
     })
   }
-  
+
 }
 
 let binContainers = {
@@ -79,36 +80,7 @@ let binContainers = {
 function exportIt() {
   //todo: Eventually, only export selected things as an option.
 
-  // tempBuffer = new Uint8Array();
-
   
-  // const buffer = new ArrayBuffer(0, {
-  //   // ~128 MB limit. A HUGE MODEL!
-  //   maxByteLength: 1000 * 1000 * 128
-  // });
-
-  
-  // const view = new DataView(buffer);
-
-  // A way to encode strings to utf8. (uint8)
-  
-
-
-  // print("is view? :" + ArrayBuffer.isView(view));
-  // print("is resizeable? " + view.resizable);
-
-  // print(view.byteLength)
-
-  //todo: This can be turned into pure functional via extension functions. like add 1 byte when uint8 adding etc
-  
-  // print("view length: " + view.byteLength);
-  // print("view offset: " + view.byteOffset);
-
-  // print(view)
-
-  // view.setUint8(0, 1)
-
-  // print(view)
 
   binContainers.textureCoordinates.appendString("Hello there");
 
