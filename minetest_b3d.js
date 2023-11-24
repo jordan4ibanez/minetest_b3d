@@ -55,13 +55,13 @@ class WorkerContainer {
   //   this.buffer.resize(0)
   // }
 
-  appendFloat(floatingPointNumber) {
-
+  appendUint8(uint8) {
+    this.grow(1)
+    this.view.setUint8(this.buffer.byteLength - 1, uint8)
   }
 
   appendChar(charUint8) {
-    this.grow(1)
-    this.view.setUint8(this.buffer.byteLength - 1, charUint8)
+    this.appendUint8(charUint8)
   }
 
   appendString(string) {
@@ -81,8 +81,13 @@ function exportIt() {
   //todo: Eventually, only export selected things as an option.
 
   
+  const texCoords = binContainers.textureCoordinates
 
-  binContainers.textureCoordinates.appendString("Hello there");
+  // Header.
+  texCoords.appendString("BB3D")
+  
+  // B3D Version 1.
+  texCoords.appendUint8(1)
 
 
   // print(view.byteLength)
