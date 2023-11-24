@@ -44,6 +44,10 @@ class WorkerContainer {
 
   // A nice view of the buffer. Brings additional features.
   view = new DataView(this.buffer)
+
+  byteLength() {
+    return this.buffer.byteLength
+  }
   
   getCurrent(byteSize) {
     return this.buffer.byteLength - byteSize
@@ -113,11 +117,90 @@ class WorkerContainer {
 
 }
 
-let binContainers = {
-  textureCoordinates: new WorkerContainer()
+// These ones get turned into a new object over and over.
+let tempContainer = new WorkerContainer()
+let nodeContainer = new WorkerContainer()
+let meshContainer = new WorkerContainer()
+let verticesContainer = new WorkerContainer()
+let trisContainer = new WorkerContainer()
+
+
+const shellContainer     = new WorkerContainer()
+const textureCoordinates = new WorkerContainer()
+const masterContainer    = new WorkerContainer()
+
+
+// function encaseChunk(chunkName, encasingContainer, bufferToBeEncased) {
+//   encasingContainer.appendString(chunkName);
+//   encasingContainer.appendInt32(bufferToBeEncased.byteLength());
+//   for (const byte of new Uint8Array(bufferToBeEncased.buffer)) {
+//     encasingContainer.appendInt8(byte)
+//   }
+// }
+
+function finalizeChunk(chunkName, chunkToBeFinalized) {
+  const tempChunk = new WorkerContainer()
+  tempChunk.appendString(chunkName)
+  tempChunk.appendInt32(chunkToBeFinalized.byteLength());
+  const startIndex = tempChunk.byteLength()
+  tempChunk.grow(chunkToBeFinalized.byteLength())
+  for (let i = 0; i < chunkToBeFinalized.byteLength(); i++) {
+    tempChunk.view.setInt8(i + startIndex, chunkToBeFinalized.view.getInt8(i))
+  }
+  return tempChunk
 }
 
+// Gives back a MESH node!
+function combineVertsTris(verts, tris) {
+  const tempChunk = new WorkerContainer()
+  tempChunk.appendString("MESH")
+  tempChunk.appendInt32(verts.byteLength() + tris.byteLength())
+  let startIndex = tempChunk.byteLength()
+  tempChunk.grow(verts.byteLength())
+  for (let i = 0; i < verts.byteLength(); i++) {
+    tempChunk.view.setInt8(i + startIndex, verts.view.getInt8(i))
+  }
+  startIndex = tempChunk.byteLength()
+  tempChunk.grow(tris.byteLength())
+  for (let i = 0; i < tris.byteLength(); i++) {
+    tempChunk.view.setInt8(i + startIndex, verts.view.getInt8(i))
+  }
+  return tempChunk
+}
 
+function combineMeshIntoNode(nodeNode, meshNode) {
+  const tempChunk = new WorkerContainer()
+  tempChunk.appendString("NODE")
+  tempChunk.appendInt32(nodeNode.byteLength() + meshNode.byteLength())
+  let startIndex = tempChunk.byteLength()
+  tempChunk.grow(nodeNode.byteLength())
+  for (let i = 0; i < nodeNode.byteLength(); i++) {
+    tempChunk.view.setInt8(i + startIndex, nodeNode.view.getInt8(i))
+  }
+  startIndex = tempChunk.byteLength()
+  tempChunk.grow(meshNode.byteLength())
+  for (let i = 0; i < meshNode.byteLength(); i++) {
+    tempChunk.view.setInt8(i + startIndex, meshNode.view.getInt8(i))
+  }
+  return tempChunk
+}
+
+function resetTempContainer() {
+  tempContainer = new WorkerContainer()
+}
+
+function completeInteraction(finalNode) {
+  const tempChunk = new WorkerContainer()
+  tempChunk.appendString("BB3D")
+  tempChunk.appendInt32(finalNode.byteLength() + 4)
+  tempChunk.appendInt32(1)
+  let startIndex = tempChunk.byteLength()
+  tempChunk.grow(finalNode.byteLength())
+  for (let i = 0; i < finalNode.byteLength(); i++) {
+    tempChunk.view.setInt8(i + startIndex, finalNode.view.getInt8(i))
+  }
+  return tempChunk
+}
 
 function exportIt() {
   //todo: Eventually, only export selected things as an option.
@@ -125,163 +208,86 @@ function exportIt() {
   
   //! Here we are trying to make a triangle.
 
-  // Using texcoords as a prototyping container.
-  const buffer = binContainers.textureCoordinates
-
-  //? A hardcoded cube for debugging/prototyping.
-
-  // Header.
-  // buffer.appendString("BB3D")
+  // Shell container holds all "branches" of this tree data structure.
 
   // B3D Version 1.
-  buffer.appendInt32(100)
+  shellContainer.appendInt32(1)
 
 
-  //! Texture information.
-
-  // Header & number of elements.
-  buffer.appendString("TEXS", 0)
-
-  // Texture name(s).
-  // buffer.appendString("test.png")
-
-  // // Texture flag 1. (What even is this?)
-  // buffer.appendInt32(1)
-
-  // // Texture flag 2. (blend)
-  // buffer.appendInt32(2)
-
-  // // Position. X, Y
-  // buffer.appendVec2(0,0)
-
-  // // Scale. X, Y
-  // buffer.appendVec2(1,1)
-
-  // // Rotation, in radians.
-  // buffer.appendFloat(0)
 
 
-  //! Brushes. (WTF is brushes??)
+  // Mesh container needs to be encased by the NODES container.
 
-  // Header & number of elements.
-  // buffer.appendHeader("BRUS", 0)
+  //! Vertices.
+
+  // Texture coordinate sets per vertex. Will always be 1 because blockbench doesn't do advanced blender features. (I think?)
+  verticesContainer.appendInt32(1)
+
+  // Components (x,y,z) per set. Will always be 2 because blockbench models are simple texture maps. So (x,y).
+  verticesContainer.appendInt32(2)
+
+  // Positions. XYZ
+  // Normals. We'll go with -Z. XYZ
+  // Texture coordinates.
+
+//{
+  verticesContainer.appendVec3(-1,-1,0) // position
+  verticesContainer.appendVec3(0,0,-1)  // normal
+  verticesContainer.appendVec3(0,1)     // texture coordinate
+
+  verticesContainer.appendVec3(1,-1,0)  // position
+  verticesContainer.appendVec3(0,0,-1)  // normal
+  verticesContainer.appendVec3(1,1)     // texture coordinate
+
+  verticesContainer.appendVec3(0,1,0)   // position
+  verticesContainer.appendVec3(0,0,-1)  // normal
+  verticesContainer.appendVec3(0.5,0)   // texture coordinate
+//}
+
+  const finalizedVertices = finalizeChunk("VRTS", verticesContainer)
+
+
+  // Brush ID. -1 is disabled basically.
+  trisContainer.appendInt32(-1)
+
+  // Indices.
+//{
+  trisContainer.appendInt32(0)
+  trisContainer.appendInt32(1)
+  trisContainer.appendInt32(2)
+// }
+
+  const finalizedTris = finalizeChunk("TRIS", trisContainer)
+
+  const finalizedMESH = combineVertsTris(finalizedVertices, finalizedTris)
+
+
 
   //! Nodes.
-
-  // Header.
-  // buffer.appendString("ye")
-
-  // Position. Vec3.
-  // buffer.appendVec3(0,0,0)
-
-  // Scale. Vec3.
-  // buffer.appendVec3(1,1,1)
-
-  // Rotation. Quaternion.
-  // buffer.appendQuaternion(0,0,0,1)
-
-  //! Mesh.
-
-//   // Header & number of elements.
-//   buffer.appendHeader("MESH", 1)
-
-//   // Brush ID.
-//   buffer.appendInt32(-1)
+  // Node name
+  nodeContainer.appendString("cool")
+  // // Position. Vec3.
+  nodeContainer.appendVec3(0,0,0)
+  // // Scale. Vec3.
+  nodeContainer.appendVec3(1,1,1)
+  // // Rotation. Quaternion.
+  nodeContainer.appendQuaternion(0,0,0,1)
 
 
-//   //! Vertices.
-
-//   // Header & number of elements.
-//   buffer.appendHeader("VRTS", 1)
-
-//   // Texture coordinate sets per vertex. Will always be 1 because blockbench doesn't do advanced blender features. (I think?)
-//   buffer.appendInt32(1)
-
-//   // Components (x,y,z) per set. Will always be 2 because blockbench models are simple texture maps. So (x,y).
-//   buffer.appendInt32(2)
-
-//   // So this is an array. So I'll just document it in the order it appears.
-
-//   // Positions. XYZ
-//   // Normals. We'll go with -Z. XYZ
-//   // Texture coordinates.
-
-// //{
-//   buffer.appendVec3(-1,-1,0) // position
-//   buffer.appendVec3(0,0,-1)  // normal
-//   buffer.appendVec3(0,1)     // texture coordinate
-
-//   buffer.appendVec3(1,-1,0)  // position
-//   buffer.appendVec3(0,0,-1)  // normal
-//   buffer.appendVec3(1,1)     // texture coordinate
-
-//   buffer.appendVec3(0,1,0)   // position
-//   buffer.appendVec3(0,0,-1)  // normal
-//   buffer.appendVec3(0.5,0)   // texture coordinate
-//}
-
-  //! Tris. (vertex index winding [aka indices])
-
-  // Header & number of elements.
-  // buffer.appendHeader("TRIS", 1)
-
-//   // Brush ID. -1 is disabled basically.
-//   buffer.appendInt32(-1)
-
-//   // Indices.
-// //{
-//   buffer.appendInt32(0)
-//   buffer.appendInt32(1)
-//   buffer.appendInt32(2)
-//}
+  const finalizedNode = combineMeshIntoNode(nodeContainer, finalizedMESH)
+  // encaseChunk("NODE", nodeContainer, finalizedMESH)
+  // resetTempContainer()
 
 
+  const finalizedModel = completeInteraction(finalizedNode)
 
-  // print(view.byteLength)
-  // print("new bytelength: " + view.byteLength)
-
-  const testing = new WorkerContainer()
-
-  testing.appendString("BB3D");
-
-  testing.appendInt32(buffer.buffer.byteLength);
-
-  for (const byte of new Uint8Array(buffer.buffer)) {
-    testing.appendInt8(byte)
-  }
 
   Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
-    content: testing.buffer
+    content: finalizedModel.buffer
   })
 
   print("exported minecart.")
 
-
-
-
-  // Version number.
-  // tempBuffer = writeInt(tempBuffer, 1)
-  // tempBuffer = writeString(tempBuffer, "BB3D")
-
-  // Have to iterate the scene multiple times because of the way B3D functions.
-  // for (const [meshPart,] of Object.entries(IdentifierMeshParts)) {
-  //   print("Parsing: " + meshPart)
-  //   scene.traverse(function(child){
-  //     switch (meshPart) {
-  //       case IdentifierMeshParts.TextureCoordinates: {
-  //         // print("Doing texture things")
-  //         if (child instanceof THREE.Mesh) {
-  //           parseTextureCoordinates(child, meshPart);
-  //         }
-  //         break;
-  //       }
-  //       // case 
-  //     }
-  //   })
-  // }
-  
-  // const blah = new Uint8Array.from([1,23,4,5,6,7])
-  // print(blah)
 }
 
 function parseMesh(mesh) {
