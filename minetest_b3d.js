@@ -125,18 +125,19 @@ const cube_face_normals = {
 	down:  [ 0, -1,  0],
 }
 
+//* Globals because this thing is just unsafe everywhere.
+let output = [];
+let indexVertex = 0;
+let indexUvs = 0;
+let indexNormalx = 0;
+
+const vertex = new THREE.Vector3();
+const normal = new THREE.Vector3();
+const uv = new THREE.Vector2();
+const face = [];
+
 function parseMesh(mesh) {
   console.log("--------------------------------")
-
-  let output = [];
-  let indexVertex = 0;
-  let indexUvs = 0;
-  let indexNormalx = 0;
-  
-  const vertex = new THREE.Vector3();
-  const normal = new THREE.Vector3();
-  const uv = new THREE.Vector2();
-  const face = [];
 
   // * export modes go here.
 
