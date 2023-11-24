@@ -35,14 +35,15 @@ const face = [];
 const encoder = new TextEncoder();
 
 class WorkerContainer {
-    
-  constructor() {
-    this.buffer = new ArrayBuffer(0, {
-      // ~128 MB limit. A HUGE MODEL!
-      maxByteLength: 1000 * 1000 * 128
-    })
-    this.view = new DataView(this.buffer)
-  }
+  
+  // MEGA resizeable buffer.
+  buffer = new ArrayBuffer(0, {
+    // ~128 MB limit. A HUGE MODEL!
+    maxByteLength: 1000 * 1000 * 128
+  })
+
+  // A nice view of the buffer. Brings additional features.
+  view = new DataView(this.buffer)
 
   grow(bytes) {
     this.buffer.resize(this.buffer.byteLength + bytes)
@@ -52,17 +53,23 @@ class WorkerContainer {
   // reset() {
   //   this.buffer.resize(0)
   // }
-  
+
+  appendFloat(floatingPointNumber) {
+
+  }
+
   appendChar(charUint8) {
     this.grow(1)
     this.view.setUint8(this.buffer.byteLength - 1, charUint8)
   }
+
   appendString(string) {
     const encodedStringArray = encoder.encode(string)
     encodedStringArray.forEach((char) => {
       this.appendChar(char)
     })
   }
+  
 }
 
 let binContainers = {
@@ -74,13 +81,13 @@ function exportIt() {
 
   // tempBuffer = new Uint8Array();
 
-  // MEGA resizeable buffer.
+  
   // const buffer = new ArrayBuffer(0, {
   //   // ~128 MB limit. A HUGE MODEL!
   //   maxByteLength: 1000 * 1000 * 128
   // });
 
-  // A nice view.
+  
   // const view = new DataView(buffer);
 
   // A way to encode strings to utf8. (uint8)
