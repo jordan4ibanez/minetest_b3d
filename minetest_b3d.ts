@@ -351,9 +351,13 @@ function finalize(container: B3d): ArrayBuffer {
   // Char * 4 to fit the BB3D string.
   const buffer = new BufferContainer(container.byteSize + (Char * 4))
   
+  print(1)
   buffer.appendString(container.header)
+  print(2)
   buffer.appendInt32(container.byteSize)
+  print(3)
   buffer.appendInt32(container.version)
+  print(4)
 
   // const rootNode = container.rootNode
   
