@@ -30,6 +30,7 @@ const Byte    = 1
 const Char    = 1
 const Integer = 4
 const Float   = 4
+const HEADER_WIDTH = (Char * 4)
 
 // Special class to ensure it is known that it's integral.
 function Ivec3(x: number, y: number, z: number) {
@@ -84,7 +85,7 @@ class Quaternion extends Vec3 {
 
 class BufferContainer {
     
-  index: 0
+  index: number = 0
   buffer: ArrayBuffer
   view: DataView
   
@@ -117,17 +118,28 @@ class BufferContainer {
     this.appendFloat(z)
   }
 
-  appendIVec2(x: number, y: number) {
+  appendIVec2Literal(x: number, y: number) {
     this.appendInt32(x)
     this.appendInt32(y)
   }
-  appendIVec3(x: number, y: number, z: number) {
+
+  appendIvec3(vec: IntegerVec3) {
+    this.appendInt32(vec.x)
+    this.appendInt32(vec.y)
+    this.appendInt32(vec.z)
+  }
+  appendIVec3Literal(x: number, y: number, z: number) {
     this.appendInt32(x)
     this.appendInt32(y)
     this.appendInt32(z)
   }
   
-  appendVec2(x: number, y: number) {
+  appendVec2(vec: Vec2) {
+    this.appendFloat(vec.x)
+    this.appendFloat(vec.y)
+  }
+
+  appendVector2(x: number, y: number) {
     this.appendFloat(x)
     this.appendFloat(y)
   }
@@ -146,17 +158,17 @@ class BufferContainer {
 
   appendFloat(float: number) {
     this.view.setFloat32(this.index, float, true)
-    this.index += Float
+    this.index += 1//Float
   }
   
   appendInt32(int32: number) {
     this.view.setInt32(this.index, int32, true)
-    this.index += Integer
+    this.index += 1//Integer
   }
 
   appendInt8(int8: number) {
     this.view.setInt8(this.index, int8)
-    this.index += Byte
+    this.index += 1//Byte
   }
 
   appendChar(charInt8: number) {
@@ -201,7 +213,7 @@ class B3d extends Element {
 
 class Node extends Element {
   readonly header: string = "NODE"
-  byteSize: number = ((3 * 3 * 4) * Float) + (Char * 4)
+  byteSize: number = ((3 * 3 * 4) * Float) //+ (Char * 4)
   readonly name: string
   position: Vec3 = new Vec3(0,0,0)
   scale: Vec3 = new Vec3(1,1,1)
@@ -219,15 +231,16 @@ class Node extends Element {
 
   setParent(node: Node) {
     this.parent = node
-    this.parent.addBytes(this.byteSize)
+    this.parent.addBytes(this.byteSize + HEADER_WIDTH)
     // Recurse through the tree to add all bytes.
     if (this.parent.parent) {
-      this.parent.parent.addBytes(this.byteSize)
+      this.parent.parent.addBytes(this.byteSize + HEADER_WIDTH)
     }
   }
 
   addChild(nodeOrElement: Node | NodeElement) {
     this.children.push(nodeOrElement)
+    this.addBytes(nodeOrElement.byteSize + HEADER_WIDTH)
   }
 }
 
@@ -238,7 +251,7 @@ class NodeElement extends Element {
 
 class Mesh extends NodeElement {
   readonly header: string = "MESH"
-  byteSize: number = (Integer * 1) + (Char * 4)
+  byteSize: number = (Integer * 1) //+ (Char * 4)
   readonly brush: number = -1
   vrts: Verts = null
   tris: Tris = null
@@ -247,14 +260,14 @@ class Mesh extends NodeElement {
     if (this.vrts !== null) {
       throw new Error("Cannot reassign vrts into a Mesh!")
     }
-    this.addBytes(newVert.byteSize)
+    this.addBytes(newVert.byteSize + HEADER_WIDTH)
     this.vrts = newVert
   }
   setTris(newTris: Tris) {
     if (this.tris !== null) {
       throw new Error("Cannot reassign tris into a Mesh!")
     }
-    this.addBytes(newTris.byteSize)
+    this.addBytes(newTris.byteSize + HEADER_WIDTH)
     this.tris = newTris
   }
 }
@@ -309,7 +322,7 @@ class VertexElement extends Element {
 
 class Tris extends Element {
   readonly header: string = "TRIS"
-  byteSize: number = Integer
+  byteSize: number = Integer + (Char * 4)
   readonly brushID = -1
   triWindings: Array<IntegerVec3> = []
 
@@ -344,8 +357,9 @@ function finalize(container: B3d): ArrayBuffer {
 
   const rootNode = container.rootNode
   
-  buffer.appendString(rootNode.name)
+  buffer.appendString(rootNode.header)
   buffer.appendInt32(rootNode.byteSize)
+  buffer.appendString(rootNode.name)
   buffer.appendVec3(rootNode.position)
   buffer.appendVec3(rootNode.scale)
   buffer.appendQuaternion(rootNode.rotation)
@@ -356,15 +370,37 @@ function finalize(container: B3d): ArrayBuffer {
     if (meshElement instanceof Mesh) {
 
       print("we got it!")
+      buffer.appendString(meshElement.header)
       buffer.appendInt32(meshElement.byteSize)
       buffer.appendInt32(meshElement.brush)
 
+      
+      const vrts = meshElement.vrts
 
+      buffer.appendString(vrts.header)
+      buffer.appendInt32(vrts.byteSize)
+      buffer.appendInt32(vrts.flags)
+      buffer.appendInt32(vrts.textureCoordinateSets)
+      buffer.appendInt32(vrts.textureCoordinateSetSize)
 
+      vrts.data.forEach((v: VertexElement) => {
+        buffer.appendVec3(v.position)
+        buffer.appendVec3(v.normal)
+        buffer.appendVec2(v.textureCoordinates)
+      })
+
+      const tris = meshElement.tris
+
+      buffer.appendString(tris.header)
+      buffer.appendInt32(tris.byteSize)
+      
+      tris.triWindings.forEach((triangle: IntegerVec3) => {
+        buffer.appendIvec3(triangle)
+      })
     }
   }
 
-
+  print("buffer index: " + buffer.index)
 
   return buffer.buffer
 }
