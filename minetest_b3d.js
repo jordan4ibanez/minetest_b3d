@@ -161,7 +161,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         }
     }
     _BufferContainer_instances = new WeakSet(), _BufferContainer_debugIndexing = function _BufferContainer_debugIndexing() {
-        print(`index: ${this.index} | maxIndex: ${this.buffer.byteLength}`);
+        // print(`index: ${this.index} | maxIndex: ${this.buffer.byteLength}`)
     };
     //! BEGIN B3D.
     class Element {
@@ -185,7 +185,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
             this.header = "BB3D";
             // Plus integer because this includes the size of the version number.
             this.byteSize = Integer;
-            this.literalByteSize = HEADER_WIDTH + Integer + Integer;
+            this.literalByteSize = HEADER_WIDTH + BYTE_COUNT_WIDTH + Integer + 1;
             this.version = 1;
             this.rootNode = null;
         }
@@ -202,7 +202,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         constructor(name) {
             super();
             this.header = "NODE";
-            this.byteSize = ((3 + 3 + 4) * Float);
+            this.byteSize = (3 + 3 + 4) * Float;
             this.literalByteSize = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH;
             this.position = new Vec3(0, 0, 0);
             this.scale = new Vec3(1, 1, 1);
@@ -224,8 +224,9 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
             // }
         }
         addChild(nodeOrElement) {
+            this.addBytes(nodeOrElement.byteSize);
+            this.addLiteralBytes(nodeOrElement.literalByteSize);
             this.children.push(nodeOrElement);
-            this.addBytes(nodeOrElement.byteSize + HEADER_WIDTH);
         }
     }
     // Specific classification to filter objects that Node can hold.
@@ -235,7 +236,8 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         constructor() {
             super(...arguments);
             this.header = "MESH";
-            this.byteSize = (Integer * 1); //+ (Char * 4)
+            this.byteSize = Integer;
+            this.literalByteSize = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH;
             this.brush = -1;
             this.vrts = null;
             this.tris = null;
@@ -244,26 +246,30 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
             if (this.vrts !== null) {
                 throw new Error("Cannot reassign vrts into a Mesh!");
             }
-            this.addBytes(newVert.byteSize + HEADER_WIDTH);
+            this.addBytes(newVert.byteSize);
+            this.addLiteralBytes(newVert.literalByteSize);
             this.vrts = newVert;
         }
         setTris(newTris) {
             if (this.tris !== null) {
                 throw new Error("Cannot reassign tris into a Mesh!");
             }
-            this.addBytes(newTris.byteSize + HEADER_WIDTH);
+            this.addBytes(newTris.byteSize);
+            this.addLiteralBytes(newTris.literalByteSize);
             this.tris = newTris;
         }
     }
     class Verts extends Element {
         addVertex(element) {
             this.addBytes(element.byteSize);
+            this.addLiteralBytes(element.literalByteSize);
             this.data.push(element);
         }
         constructor(vertexList) {
             super();
             this.header = "VRTS";
-            this.byteSize = Integer + Integer + (Integer * 2) + (Char * 4);
+            this.byteSize = Integer * 3;
+            this.literalByteSize = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH;
             this.flags = 1;
             this.textureCoordinateSets = 1;
             this.textureCoordinateSetSize = 2;
@@ -282,7 +288,8 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     class VertexElement extends Element {
         constructor(def) {
             super();
-            this.byteSize = (Float * 3) + (Float * 3) + (Float * 2);
+            this.byteSize = (3 + 3 + 2) * Float;
+            this.literalByteSize = this.byteSize;
             this.position = def.position;
             this.normal = def.normal;
             this.textureCoordinates = def.textureCoordinates;
@@ -292,13 +299,16 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         // Builder pattern || direct construction.
         addTri(newTri) {
             this.addBytes(Integer * 3);
+            this.addLiteralBytes(Integer * 3);
             this.triWindings.push(newTri);
-            print("new bytesize in tri: " + this.byteSize);
+            this.arrayByteSize += (Integer * 3);
         }
         constructor(windingList) {
             super();
             this.header = "TRIS";
-            this.byteSize = Integer + (Char * 4);
+            this.byteSize = Integer + Integer;
+            this.literalByteSize = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH;
+            this.arrayByteSize = 0;
             this.brushID = -1;
             this.triWindings = [];
             if (windingList) {
@@ -308,55 +318,55 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
             }
         }
     }
+    //! BEGIN IMPLEMENTATION.
     function finalize(container) {
         // A hardcode for now!
-        // Char * 4 to fit the BB3D string.
         const buffer = new BufferContainer(container.literalByteSize);
         buffer.appendString(container.header);
         buffer.appendInt32(container.byteSize);
+        print("literal bytesize: " + container.byteSize);
         buffer.appendInt32(container.version);
         const rootNode = container.rootNode;
-        print("current index: " + buffer.index);
-        print("literal of root:" + rootNode.literalByteSize);
-        print("BEGIN!");
-        buffer.appendString(rootNode.header);
-        print("HEADER is done");
-        buffer.appendInt32(rootNode.byteSize);
-        print("appended bytesize");
-        buffer.appendString(rootNode.name);
-        print("appended node name");
-        buffer.appendVec3(rootNode.position);
-        print("appended position");
-        buffer.appendVec3(rootNode.scale);
-        print("appended scale");
-        buffer.appendQuaternion(rootNode.rotation);
-        print("appended rotation");
-        // const meshElement = rootNode.children[0]
-        // if (meshElement) {
-        //   if (meshElement instanceof Mesh) {
-        //     print("we got it!")
-        //     buffer.appendString(meshElement.header)
-        //     buffer.appendInt32(meshElement.byteSize)
-        //     buffer.appendInt32(meshElement.brush)
-        //     const vrts = meshElement.vrts
-        //     buffer.appendString(vrts.header)
-        //     buffer.appendInt32(vrts.byteSize)
-        //     buffer.appendInt32(vrts.flags)
-        //     buffer.appendInt32(vrts.textureCoordinateSets)
-        //     buffer.appendInt32(vrts.textureCoordinateSetSize)
-        //     vrts.data.forEach((v: VertexElement) => {
-        //       buffer.appendVec3(v.position)
-        //       buffer.appendVec3(v.normal)
-        //       buffer.appendVec2(v.textureCoordinates)
-        //     })
-        //     const tris = meshElement.tris
-        //     buffer.appendString(tris.header)
-        //     buffer.appendInt32(tris.byteSize)
-        //     tris.triWindings.forEach((triangle: IntegerVec3) => {
-        //       buffer.appendIvec3(triangle)
-        //     })
-        //   }
-        // }
+        if (rootNode) {
+            print("byte size literal of root node: " + rootNode.literalByteSize);
+            buffer.appendString(rootNode.header);
+            buffer.appendInt32(rootNode.byteSize);
+            buffer.appendString(rootNode.name);
+            buffer.appendVec3(rootNode.position);
+            buffer.appendVec3(rootNode.scale);
+            buffer.appendQuaternion(rootNode.rotation);
+            const meshElement = rootNode.children[0];
+            if (meshElement) {
+                if (meshElement instanceof Mesh) {
+                    buffer.appendString(meshElement.header);
+                    buffer.appendInt32(meshElement.byteSize);
+                    buffer.appendInt32(meshElement.brush);
+                    const vrts = meshElement.vrts;
+                    if (vrts) {
+                        buffer.appendString(vrts.header);
+                        buffer.appendInt32(vrts.byteSize);
+                        buffer.appendInt32(vrts.flags);
+                        buffer.appendInt32(vrts.textureCoordinateSets);
+                        buffer.appendInt32(vrts.textureCoordinateSetSize);
+                        vrts.data.forEach((v) => {
+                            buffer.appendVec3(v.position);
+                            buffer.appendVec3(v.normal);
+                            buffer.appendVec2(v.textureCoordinates);
+                        });
+                    }
+                    const tris = meshElement.tris;
+                    if (tris) {
+                        buffer.appendString(tris.header);
+                        buffer.appendInt32(tris.byteSize);
+                        buffer.appendInt32(tris.brushID);
+                        tris.triWindings.forEach((triangle) => {
+                            buffer.appendIvec3(triangle);
+                        });
+                    }
+                }
+            }
+        }
+        buffer.appendString("\0");
         print("final index: " + buffer.index);
         return buffer.buffer;
     }
@@ -364,35 +374,37 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         //todo: Eventually, only export selected things as an option.
         //! Here we are trying to make a triangle.
         const masterContainer = new B3d();
-        const rootNode = new Node("root_node");
-        // const triangleVertices = new Verts([
-        //   VertElm({
-        //     position: FVec3(-1,0,0),
-        //     normal: FVec3(0,0,1),
-        //     textureCoordinates: FVec2(0,0)
-        //   }),
-        //   VertElm({
-        //     position: FVec3(1,0,0),
-        //     normal: FVec3(0,0,1),
-        //     textureCoordinates: FVec2(1,0)
-        //   }),
-        //   VertElm({
-        //     position: FVec3(0,1,0),
-        //     normal: FVec3(0,0,1),
-        //     textureCoordinates: FVec2(0.5,1)
-        //   }),
-        // ])
-        // const triangleTris = new Tris([
-        //   Ivec3(0,1,2)
-        // ])
-        // const coolMesh = new Mesh()
-        // coolMesh.setVerts(triangleVertices)
+        const rootNode = new Node("ROOT");
+        const triangleVertices = new Verts([
+            VertElm({
+                position: FVec3(-1, 0, 0),
+                normal: FVec3(0, 0, 1),
+                textureCoordinates: FVec2(0, 0)
+            }),
+            VertElm({
+                position: FVec3(1, 0, 0),
+                normal: FVec3(0, 0, 1),
+                textureCoordinates: FVec2(1, 0)
+            }),
+            VertElm({
+                position: FVec3(0, 1, 0),
+                normal: FVec3(0, 0, 1),
+                textureCoordinates: FVec2(0.5, 1)
+            }),
+        ]);
+        const triangleTris = new Tris([
+            Ivec3(0, 1, 2)
+        ]);
+        const coolMesh = new Mesh();
+        coolMesh.setVerts(triangleVertices);
         // coolMesh.setTris(triangleTris)
-        // rootNode.addChild(coolMesh)
+        rootNode.addChild(coolMesh);
         masterContainer.addRootNode(rootNode);
         const finishedBuffer = finalize(masterContainer);
         print("actual size: " + finishedBuffer.byteLength);
-        Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
+        //const output = "/home/jordan/Desktop/testingMesh.b3d"
+        const output = "/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d";
+        Blockbench.writeFile(output, {
             content: finishedBuffer
         });
         print("exported minecart. (this is a lie)");

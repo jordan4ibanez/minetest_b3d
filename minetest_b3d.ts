@@ -98,7 +98,7 @@ class BufferContainer {
 
   // Didn't even know you could make methods private in TS.
   #debugIndexing() {
-    print(`index: ${this.index} | maxIndex: ${this.buffer.byteLength}`)
+    // print(`index: ${this.index} | maxIndex: ${this.buffer.byteLength}`)
   }
 
 
@@ -216,7 +216,7 @@ class B3d extends Element {
   
   // Plus integer because this includes the size of the version number.
   byteSize: number = Integer
-  literalByteSize: number = HEADER_WIDTH + Integer + Integer
+  literalByteSize: number = HEADER_WIDTH + BYTE_COUNT_WIDTH + Integer + 1
 
   version: number = 1
   rootNode: Node = null
@@ -236,13 +236,10 @@ class Node extends Element {
   byteSize: number = (3 + 3 + 4) * Float
   literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
 
-
   readonly name: string
 
   position: Vec3 = new Vec3(0,0,0)
-
   scale: Vec3 = new Vec3(1,1,1)
-
   rotation: Quaternion = new Quaternion(0,0,0,1)
 
   // Allow rapidly indexing through the tree.
@@ -309,7 +306,6 @@ class Verts extends Element {
   readonly header: string = "VRTS"
   byteSize: number = Integer * 3
   literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
-
   readonly flags = 1
   readonly textureCoordinateSets = 1
   readonly textureCoordinateSetSize = 2
@@ -344,7 +340,7 @@ function VertElm(def: VertexElementDefinition) {
 }
 class VertexElement extends Element {
   readonly byteSize: number = (3 + 3 + 2) * Float
-  readonly literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
+  readonly literalByteSize: number = this.byteSize
   readonly position: Vec3;
   readonly normal: Vec3;
   readonly textureCoordinates: Vec2;
@@ -359,8 +355,9 @@ class VertexElement extends Element {
 
 class Tris extends Element {
   readonly header: string = "TRIS"
-  byteSize: number = Integer
+  byteSize: number = Integer + Integer
   literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
+  arrayByteSize: number = 0
   readonly brushID = -1
   triWindings: Array<IntegerVec3> = []
 
@@ -370,6 +367,7 @@ class Tris extends Element {
     this.addBytes(Integer * 3)
     this.addLiteralBytes(Integer * 3)
     this.triWindings.push(newTri)
+    this.arrayByteSize += (Integer * 3)
   }
 
   constructor(windingList?: Array<IntegerVec3>) {
@@ -382,70 +380,70 @@ class Tris extends Element {
   }
 }
 
+//! BEGIN IMPLEMENTATION.
+
 function finalize(container: B3d): ArrayBuffer {
 
   // A hardcode for now!
 
-  // Char * 4 to fit the BB3D string.
   const buffer = new BufferContainer(container.literalByteSize)
   
   buffer.appendString(container.header)
   buffer.appendInt32(container.byteSize)
+  print("literal bytesize: " + container.byteSize)
   buffer.appendInt32(container.version)
+
   const rootNode = container.rootNode
 
-  print("current index: " + buffer.index)
-  print("literal of root:" + rootNode.literalByteSize)
-  print("BEGIN!")
-  
-  buffer.appendString(rootNode.header)
-  print("HEADER is done")
-  buffer.appendInt32(rootNode.byteSize)
-  print("appended bytesize")
-  buffer.appendString(rootNode.name)
-  print("appended node name")
-  buffer.appendVec3(rootNode.position)
-  print("appended position")
-  buffer.appendVec3(rootNode.scale)
-  print("appended scale")
-  buffer.appendQuaternion(rootNode.rotation)
-  print("appended rotation")
+  if (rootNode) {
+    print("byte size literal of root node: " + rootNode.literalByteSize)
+    buffer.appendString(rootNode.header)
+    buffer.appendInt32(rootNode.byteSize)
+    buffer.appendString(rootNode.name)
+    buffer.appendVec3(rootNode.position)
+    buffer.appendVec3(rootNode.scale)
+    buffer.appendQuaternion(rootNode.rotation)
 
-  // const meshElement = rootNode.children[0]
+    const meshElement = rootNode.children[0]
 
-  // if (meshElement) {
-  //   if (meshElement instanceof Mesh) {
+    if (meshElement) {
+      if (meshElement instanceof Mesh) {
 
-  //     print("we got it!")
-  //     buffer.appendString(meshElement.header)
-  //     buffer.appendInt32(meshElement.byteSize)
-  //     buffer.appendInt32(meshElement.brush)
+        buffer.appendString(meshElement.header)
+        buffer.appendInt32(meshElement.byteSize)
+        buffer.appendInt32(meshElement.brush)
 
-      
-  //     const vrts = meshElement.vrts
+        
+        const vrts = meshElement.vrts
+        if (vrts) {
+          buffer.appendString(vrts.header)
+          buffer.appendInt32(vrts.byteSize)
+          buffer.appendInt32(vrts.flags)
+          buffer.appendInt32(vrts.textureCoordinateSets)
+          buffer.appendInt32(vrts.textureCoordinateSetSize)
 
-  //     buffer.appendString(vrts.header)
-  //     buffer.appendInt32(vrts.byteSize)
-  //     buffer.appendInt32(vrts.flags)
-  //     buffer.appendInt32(vrts.textureCoordinateSets)
-  //     buffer.appendInt32(vrts.textureCoordinateSetSize)
+          vrts.data.forEach((v: VertexElement) => {
+            buffer.appendVec3(v.position)
+            buffer.appendVec3(v.normal)
+            buffer.appendVec2(v.textureCoordinates)
+          })
+        }
 
-  //     vrts.data.forEach((v: VertexElement) => {
-  //       buffer.appendVec3(v.position)
-  //       buffer.appendVec3(v.normal)
-  //       buffer.appendVec2(v.textureCoordinates)
-  //     })
+        const tris = meshElement.tris
 
-  //     const tris = meshElement.tris
+        if (tris) {
+          buffer.appendString(tris.header)
+          buffer.appendInt32(tris.byteSize)
+          buffer.appendInt32(tris.brushID)
+          tris.triWindings.forEach((triangle: IntegerVec3) => {
+            buffer.appendIvec3(triangle)
+          })
+        }
+      }
+    }
+  }
 
-  //     buffer.appendString(tris.header)
-  //     buffer.appendInt32(tris.byteSize)
-      
-  //     tris.triWindings.forEach((triangle: IntegerVec3) => {
-  //       buffer.appendIvec3(triangle)
-  //     })
-  //   }
-  // }
+  buffer.appendString("\0")
 
   print("final index: " + buffer.index)
 
@@ -459,34 +457,36 @@ function exportIt() {
 
   const masterContainer = new B3d()
 
-  const rootNode = new Node("root_node");
+  const rootNode = new Node("ROOT");
 
-  // const triangleVertices = new Verts([
-  //   VertElm({
-  //     position: FVec3(-1,0,0),
-  //     normal: FVec3(0,0,1),
-  //     textureCoordinates: FVec2(0,0)
-  //   }),
-  //   VertElm({
-  //     position: FVec3(1,0,0),
-  //     normal: FVec3(0,0,1),
-  //     textureCoordinates: FVec2(1,0)
-  //   }),
-  //   VertElm({
-  //     position: FVec3(0,1,0),
-  //     normal: FVec3(0,0,1),
-  //     textureCoordinates: FVec2(0.5,1)
-  //   }),
-  // ])
+  const triangleVertices = new Verts([
+    VertElm({
+      position: FVec3(-1,0,0),
+      normal: FVec3(0,0,1),
+      textureCoordinates: FVec2(0,0)
+    }),
+    VertElm({
+      position: FVec3(1,0,0),
+      normal: FVec3(0,0,1),
+      textureCoordinates: FVec2(1,0)
+    }),
+    VertElm({
+      position: FVec3(0,1,0),
+      normal: FVec3(0,0,1),
+      textureCoordinates: FVec2(0.5,1)
+    }),
+  ])
 
-  // const triangleTris = new Tris([
-  //   Ivec3(0,1,2)
-  // ])
+  const triangleTris = new Tris([
+    Ivec3(0,1,2)
+  ])
 
-  // const coolMesh = new Mesh()
-  // coolMesh.setVerts(triangleVertices)
+  const coolMesh = new Mesh()
+
+  coolMesh.setVerts(triangleVertices)
   // coolMesh.setTris(triangleTris)
-  // rootNode.addChild(coolMesh)
+
+  rootNode.addChild(coolMesh)
 
   masterContainer.addRootNode(rootNode)
 
@@ -495,8 +495,9 @@ function exportIt() {
   print("actual size: " + finishedBuffer.byteLength)
 
 
-
-  Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
+  //const output = "/home/jordan/Desktop/testingMesh.b3d"
+  const output = "/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d"
+  Blockbench.writeFile(output, {
     content: finishedBuffer
   })
 
