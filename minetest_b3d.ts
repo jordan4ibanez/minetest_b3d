@@ -31,6 +31,18 @@ const Char    = 1
 const Integer = 4
 const Float   = 4
 
+// Special class to ensure it is known that it's integral.
+class IntegerVec3 {
+  x: number = 0
+  y: number = 0
+  z: number = 0
+  constructor(x: number, y: number, z: number) {
+    this.x = x
+    this.y = y
+    this.z = z
+  }
+}
+
 class Vec2 {
   byteSize = Float * 2
   x: number = 0
@@ -172,10 +184,20 @@ class VertexElement extends Element {
 class Tris extends Element {
   byteSize: number = Integer
   readonly brushID = -1
-  triWindings: Array<Vec3> = []
-  addTri(newTri: Vec3) {
-    this.addBytes(Float * 3)
+  triWindings: Array<IntegerVec3> = []
+
+  addTri(newTri: IntegerVec3) {
+    this.addBytes(Integer * 3)
     this.triWindings.push(newTri)
+  }
+
+  constructor(windingList?: Array<IntegerVec3>) {
+    super()
+    if (windingList) {
+      windingList.forEach((winding: Vec3) => {
+        this.addTri(winding)
+      })
+    }
   }
 }
 
@@ -183,6 +205,12 @@ class Tris extends Element {
 function exportIt() {
   //todo: Eventually, only export selected things as an option.
   //! Here we are trying to make a triangle.
+
+
+  const rootNode = new Node("root_node");
+
+  const triangTris = new Tris()
+  triangTris.addTri(new Vec3)
 
 
 
