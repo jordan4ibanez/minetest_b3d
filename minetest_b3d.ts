@@ -400,7 +400,7 @@ function finalize(container: B3d): ArrayBuffer {
     }
   }
 
-  print("buffer index: " + buffer.index)
+  print("final index: " + buffer.index)
 
   return buffer.buffer
 }
@@ -443,14 +443,14 @@ function exportIt() {
   masterContainer.addRootNode(rootNode)
 
   const finishedBuffer: ArrayBuffer = finalize(masterContainer)
+  
+  print("actual size: " + masterContainer.byteSize)
 
-  print("omega size: " + masterContainer.byteSize)
 
 
-
-  // Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
-  //   content: finishedBuffer
-  // })
+  Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
+    content: finishedBuffer
+  })
 
   print("exported minecart. (this is a lie)")
 

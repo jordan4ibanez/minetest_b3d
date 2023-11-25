@@ -323,7 +323,7 @@
                 });
             }
         }
-        print("buffer index: " + buffer.index);
+        print("final index: " + buffer.index);
         return buffer.buffer;
     }
     function exportIt() {
@@ -357,10 +357,10 @@
         rootNode.addChild(coolMesh);
         masterContainer.addRootNode(rootNode);
         const finishedBuffer = finalize(masterContainer);
-        print("omega size: " + masterContainer.byteSize);
-        // Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
-        //   content: finishedBuffer
-        // })
+        print("actual size: " + masterContainer.byteSize);
+        Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
+            content: finishedBuffer
+        });
         print("exported minecart. (this is a lie)");
     }
     function parseMesh(mesh) {
