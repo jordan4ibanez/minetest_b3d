@@ -290,39 +290,39 @@
         buffer.appendString(container.header);
         buffer.appendInt32(container.byteSize);
         buffer.appendInt32(container.version);
-        const rootNode = container.rootNode;
-        buffer.appendString(rootNode.header);
-        buffer.appendInt32(rootNode.byteSize);
-        buffer.appendString(rootNode.name);
-        buffer.appendVec3(rootNode.position);
-        buffer.appendVec3(rootNode.scale);
-        buffer.appendQuaternion(rootNode.rotation);
-        const meshElement = rootNode.children[0];
-        if (meshElement) {
-            if (meshElement instanceof Mesh) {
-                print("we got it!");
-                buffer.appendString(meshElement.header);
-                buffer.appendInt32(meshElement.byteSize);
-                buffer.appendInt32(meshElement.brush);
-                const vrts = meshElement.vrts;
-                buffer.appendString(vrts.header);
-                buffer.appendInt32(vrts.byteSize);
-                buffer.appendInt32(vrts.flags);
-                buffer.appendInt32(vrts.textureCoordinateSets);
-                buffer.appendInt32(vrts.textureCoordinateSetSize);
-                vrts.data.forEach((v) => {
-                    buffer.appendVec3(v.position);
-                    buffer.appendVec3(v.normal);
-                    buffer.appendVec2(v.textureCoordinates);
-                });
-                const tris = meshElement.tris;
-                buffer.appendString(tris.header);
-                buffer.appendInt32(tris.byteSize);
-                tris.triWindings.forEach((triangle) => {
-                    buffer.appendIvec3(triangle);
-                });
-            }
-        }
+        // const rootNode = container.rootNode
+        // buffer.appendString(rootNode.header)
+        // buffer.appendInt32(rootNode.byteSize)
+        // buffer.appendString(rootNode.name)
+        // buffer.appendVec3(rootNode.position)
+        // buffer.appendVec3(rootNode.scale)
+        // buffer.appendQuaternion(rootNode.rotation)
+        // const meshElement = rootNode.children[0]
+        // if (meshElement) {
+        //   if (meshElement instanceof Mesh) {
+        //     print("we got it!")
+        //     buffer.appendString(meshElement.header)
+        //     buffer.appendInt32(meshElement.byteSize)
+        //     buffer.appendInt32(meshElement.brush)
+        //     const vrts = meshElement.vrts
+        //     buffer.appendString(vrts.header)
+        //     buffer.appendInt32(vrts.byteSize)
+        //     buffer.appendInt32(vrts.flags)
+        //     buffer.appendInt32(vrts.textureCoordinateSets)
+        //     buffer.appendInt32(vrts.textureCoordinateSetSize)
+        //     vrts.data.forEach((v: VertexElement) => {
+        //       buffer.appendVec3(v.position)
+        //       buffer.appendVec3(v.normal)
+        //       buffer.appendVec2(v.textureCoordinates)
+        //     })
+        //     const tris = meshElement.tris
+        //     buffer.appendString(tris.header)
+        //     buffer.appendInt32(tris.byteSize)
+        //     tris.triWindings.forEach((triangle: IntegerVec3) => {
+        //       buffer.appendIvec3(triangle)
+        //     })
+        //   }
+        // }
         print("final index: " + buffer.index);
         return buffer.buffer;
     }
@@ -330,32 +330,32 @@
         //todo: Eventually, only export selected things as an option.
         //! Here we are trying to make a triangle.
         const masterContainer = new B3d();
-        const rootNode = new Node("root_node");
-        const triangleVertices = new Verts([
-            VertElm({
-                position: FVec3(-1, 0, 0),
-                normal: FVec3(0, 0, 1),
-                textureCoordinates: FVec2(0, 0)
-            }),
-            VertElm({
-                position: FVec3(1, 0, 0),
-                normal: FVec3(0, 0, 1),
-                textureCoordinates: FVec2(1, 0)
-            }),
-            VertElm({
-                position: FVec3(0, 1, 0),
-                normal: FVec3(0, 0, 1),
-                textureCoordinates: FVec2(0.5, 1)
-            }),
-        ]);
-        const triangleTris = new Tris([
-            Ivec3(0, 1, 2)
-        ]);
-        const coolMesh = new Mesh();
-        coolMesh.setVerts(triangleVertices);
-        coolMesh.setTris(triangleTris);
-        rootNode.addChild(coolMesh);
-        masterContainer.addRootNode(rootNode);
+        // const rootNode = new Node("root_node");
+        // const triangleVertices = new Verts([
+        //   VertElm({
+        //     position: FVec3(-1,0,0),
+        //     normal: FVec3(0,0,1),
+        //     textureCoordinates: FVec2(0,0)
+        //   }),
+        //   VertElm({
+        //     position: FVec3(1,0,0),
+        //     normal: FVec3(0,0,1),
+        //     textureCoordinates: FVec2(1,0)
+        //   }),
+        //   VertElm({
+        //     position: FVec3(0,1,0),
+        //     normal: FVec3(0,0,1),
+        //     textureCoordinates: FVec2(0.5,1)
+        //   }),
+        // ])
+        // const triangleTris = new Tris([
+        //   Ivec3(0,1,2)
+        // ])
+        // const coolMesh = new Mesh()
+        // coolMesh.setVerts(triangleVertices)
+        // coolMesh.setTris(triangleTris)
+        // rootNode.addChild(coolMesh)
+        // masterContainer.addRootNode(rootNode)
         const finishedBuffer = finalize(masterContainer);
         print("actual size: " + masterContainer.byteSize);
         Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
