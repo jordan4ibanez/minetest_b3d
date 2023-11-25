@@ -173,6 +173,8 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         }
         addBytes(byteSize) {
             this.byteSize += byteSize;
+        }
+        addLiteralBytes(byteSize) {
             this.literalByteSize += byteSize;
         }
     }
@@ -192,6 +194,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
                 throw new Error("Cannot set the root note on a B3d container more than once!");
             }
             this.addBytes(node.byteSize);
+            this.addLiteralBytes(node.literalByteSize);
             this.rootNode = node;
         }
     }
@@ -199,7 +202,8 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         constructor(name) {
             super();
             this.header = "NODE";
-            this.byteSize = ((3 * 3 * 4) * Float); //+ (Char * 4)
+            this.byteSize = ((3 + 3 + 4) * Float);
+            this.literalByteSize = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH;
             this.position = new Vec3(0, 0, 0);
             this.scale = new Vec3(1, 1, 1);
             this.rotation = new Quaternion(0, 0, 0, 1);
@@ -208,14 +212,16 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
             this.children = [];
             this.name = name;
             this.addBytes(name.length * Char);
+            this.addLiteralBytes(name.length * Char);
         }
         setParent(node) {
             this.parent = node;
-            this.parent.addBytes(this.byteSize + HEADER_WIDTH);
+            // ! fixme: re-enable this
+            // this.parent.addBytes(this.byteSize + HEADER_WIDTH)
             // Recurse through the tree to add all bytes.
-            if (this.parent.parent) {
-                this.parent.parent.addBytes(this.byteSize + HEADER_WIDTH);
-            }
+            // if (this.parent.parent) {
+            //   this.parent.parent.addBytes(this.byteSize + HEADER_WIDTH)
+            // }
         }
         addChild(nodeOrElement) {
             this.children.push(nodeOrElement);
@@ -306,21 +312,25 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         // A hardcode for now!
         // Char * 4 to fit the BB3D string.
         const buffer = new BufferContainer(container.literalByteSize);
-        print(1);
-        print(container.header);
         buffer.appendString(container.header);
-        print(2);
         buffer.appendInt32(container.byteSize);
-        print(3);
         buffer.appendInt32(container.version);
-        print(4);
-        // const rootNode = container.rootNode
-        // buffer.appendString(rootNode.header)
-        // buffer.appendInt32(rootNode.byteSize)
-        // buffer.appendString(rootNode.name)
-        // buffer.appendVec3(rootNode.position)
-        // buffer.appendVec3(rootNode.scale)
-        // buffer.appendQuaternion(rootNode.rotation)
+        const rootNode = container.rootNode;
+        print("current index: " + buffer.index);
+        print("literal of root:" + rootNode.literalByteSize);
+        print("BEGIN!");
+        buffer.appendString(rootNode.header);
+        print("HEADER is done");
+        buffer.appendInt32(rootNode.byteSize);
+        print("appended bytesize");
+        buffer.appendString(rootNode.name);
+        print("appended node name");
+        buffer.appendVec3(rootNode.position);
+        print("appended position");
+        buffer.appendVec3(rootNode.scale);
+        print("appended scale");
+        buffer.appendQuaternion(rootNode.rotation);
+        print("appended rotation");
         // const meshElement = rootNode.children[0]
         // if (meshElement) {
         //   if (meshElement instanceof Mesh) {
@@ -354,7 +364,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         //todo: Eventually, only export selected things as an option.
         //! Here we are trying to make a triangle.
         const masterContainer = new B3d();
-        // const rootNode = new Node("root_node");
+        const rootNode = new Node("root_node");
         // const triangleVertices = new Verts([
         //   VertElm({
         //     position: FVec3(-1,0,0),
@@ -379,7 +389,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
         // coolMesh.setVerts(triangleVertices)
         // coolMesh.setTris(triangleTris)
         // rootNode.addChild(coolMesh)
-        // masterContainer.addRootNode(rootNode)
+        masterContainer.addRootNode(rootNode);
         const finishedBuffer = finalize(masterContainer);
         print("actual size: " + finishedBuffer.byteLength);
         Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {

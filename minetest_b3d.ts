@@ -204,6 +204,8 @@ class Element {
   literalByteSize = 0
   addBytes(byteSize: number) {
     this.byteSize += byteSize
+  }
+  addLiteralBytes(byteSize: number) {
     this.literalByteSize += byteSize
   }
 }
@@ -214,7 +216,6 @@ class B3d extends Element {
   
   // Plus integer because this includes the size of the version number.
   byteSize: number = Integer
-
   literalByteSize: number = HEADER_WIDTH + Integer + Integer
 
   version: number = 1
@@ -224,16 +225,25 @@ class B3d extends Element {
       throw new Error("Cannot set the root note on a B3d container more than once!")
     }
     this.addBytes(node.byteSize)
+    this.addLiteralBytes(node.literalByteSize)
     this.rootNode = node
   }
 }
 
 class Node extends Element {
   readonly header: string = "NODE"
-  byteSize: number = ((3 * 3 * 4) * Float) //+ (Char * 4)
+
+  byteSize: number = ((3 + 3 + 4) * Float)
+  
+  literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
+
+
   readonly name: string
+
   position: Vec3 = new Vec3(0,0,0)
+
   scale: Vec3 = new Vec3(1,1,1)
+
   rotation: Quaternion = new Quaternion(0,0,0,1)
 
   // Allow rapidly indexing through the tree.
@@ -244,15 +254,17 @@ class Node extends Element {
     super()
     this.name = name
     this.addBytes(name.length * Char)
+    this.addLiteralBytes(name.length * Char)
   }
 
   setParent(node: Node) {
     this.parent = node
-    this.parent.addBytes(this.byteSize + HEADER_WIDTH)
+    // ! fixme: re-enable this
+    // this.parent.addBytes(this.byteSize + HEADER_WIDTH)
     // Recurse through the tree to add all bytes.
-    if (this.parent.parent) {
-      this.parent.parent.addBytes(this.byteSize + HEADER_WIDTH)
-    }
+    // if (this.parent.parent) {
+    //   this.parent.parent.addBytes(this.byteSize + HEADER_WIDTH)
+    // }
   }
 
   addChild(nodeOrElement: Node | NodeElement) {
@@ -368,23 +380,27 @@ function finalize(container: B3d): ArrayBuffer {
   // Char * 4 to fit the BB3D string.
   const buffer = new BufferContainer(container.literalByteSize)
   
-  print(1)
-  print(container.header)
   buffer.appendString(container.header)
-  print(2)
   buffer.appendInt32(container.byteSize)
-  print(3)
   buffer.appendInt32(container.version)
-  print(4)
+  const rootNode = container.rootNode
 
-  // const rootNode = container.rootNode
+  print("current index: " + buffer.index)
+  print("literal of root:" + rootNode.literalByteSize)
+  print("BEGIN!")
   
-  // buffer.appendString(rootNode.header)
-  // buffer.appendInt32(rootNode.byteSize)
-  // buffer.appendString(rootNode.name)
-  // buffer.appendVec3(rootNode.position)
-  // buffer.appendVec3(rootNode.scale)
-  // buffer.appendQuaternion(rootNode.rotation)
+  buffer.appendString(rootNode.header)
+  print("HEADER is done")
+  buffer.appendInt32(rootNode.byteSize)
+  print("appended bytesize")
+  buffer.appendString(rootNode.name)
+  print("appended node name")
+  buffer.appendVec3(rootNode.position)
+  print("appended position")
+  buffer.appendVec3(rootNode.scale)
+  print("appended scale")
+  buffer.appendQuaternion(rootNode.rotation)
+  print("appended rotation")
 
   // const meshElement = rootNode.children[0]
 
@@ -434,7 +450,7 @@ function exportIt() {
 
   const masterContainer = new B3d()
 
-  // const rootNode = new Node("root_node");
+  const rootNode = new Node("root_node");
 
   // const triangleVertices = new Verts([
   //   VertElm({
@@ -462,7 +478,8 @@ function exportIt() {
   // coolMesh.setVerts(triangleVertices)
   // coolMesh.setTris(triangleTris)
   // rootNode.addChild(coolMesh)
-  // masterContainer.addRootNode(rootNode)
+
+  masterContainer.addRootNode(rootNode)
 
   const finishedBuffer: ArrayBuffer = finalize(masterContainer)
   
