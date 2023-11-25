@@ -46,6 +46,9 @@ class IntegerVec3 {
   }
 }
 
+function FVec2(x: number, y: number) {
+  return new Vec2(x,y)
+}
 class Vec2 {
   byteSize = Float * 2
   x: number = 0
@@ -56,6 +59,9 @@ class Vec2 {
   }
 }
 
+function FVec3(x: number, y: number, z: number) {
+  return new Vec3(x,y,z)
+}
 class Vec3 extends Vec2 {
   byteSize: number = Float * 3
   z: number = 0
@@ -180,6 +186,9 @@ interface VertexElementDefinition {
   textureCoordinates: Vec2
 }
 
+function VertElm(def: VertexElementDefinition) {
+  return new VertexElement(def)
+}
 class VertexElement extends Element {
   readonly byteSize: number = (Float * 3) + (Float * 3) + (Float * 2)
   readonly position: Vec3;
@@ -222,16 +231,41 @@ function exportIt() {
   //todo: Eventually, only export selected things as an option.
   //! Here we are trying to make a triangle.
 
+  const masterContainer = new B3d()
 
   const rootNode = new Node("root_node");
 
-  const triangleVertices = new Verts()
+  const triangleVertices = new Verts([
+    VertElm({
+      position: FVec3(-1,0,0),
+      normal: FVec3(0,0,1),
+      textureCoordinates: FVec2(0,0)
+    }),
+    VertElm({
+      position: FVec3(1,0,0),
+      normal: FVec3(0,0,1),
+      textureCoordinates: FVec2(1,0)
+    }),
+    VertElm({
+      position: FVec3(0,1,0),
+      normal: FVec3(0,0,1),
+      textureCoordinates: FVec2(0.5,1)
+    }),
+  ])
 
   const triangleTris = new Tris([
     Ivec3(0,1,2)
   ])
 
+  const coolMesh = new Mesh()
+  coolMesh.setVerts(triangleVertices)
+  coolMesh.setTris(triangleTris)
 
+  rootNode.addChild(coolMesh)
+
+  masterContainer.addRootNode(rootNode)
+
+  print("omega size: " + masterContainer.byteSize)
 
 
 
@@ -239,7 +273,7 @@ function exportIt() {
   //   content: finalizedModel.buffer
   // })
 
-  print("exported minecart.")
+  print("exported minecart. (this is a lie)")
 
 }
 
