@@ -37,6 +37,9 @@
             this.z = z;
         }
     }
+    function FVec2(x, y) {
+        return new Vec2(x, y);
+    }
     class Vec2 {
         constructor(x, y) {
             this.byteSize = Float * 2;
@@ -45,6 +48,9 @@
             this.x = x;
             this.y = y;
         }
+    }
+    function FVec3(x, y, z) {
+        return new Vec3(x, y, z);
     }
     class Vec3 extends Vec2 {
         constructor(x, y, z) {
@@ -135,18 +141,27 @@
         }
     }
     class Verts extends Element {
-        constructor() {
-            super(...arguments);
-            this.byteSize = Integer + Integer + (Integer * 2);
-            this.flags = 1;
-            this.textureCoordinateSets = 1;
-            this.textureCoordinateSetSize = 2;
-            this.data = [];
-        }
         addVertex(element) {
             this.addBytes(element.byteSize);
             this.data.push(element);
         }
+        constructor(vertexList) {
+            super();
+            this.byteSize = Integer + Integer + (Integer * 2);
+            this.flags = 1;
+            this.textureCoordinateSets = 1;
+            this.textureCoordinateSetSize = 2;
+            // Builder pattern || direct construction.
+            this.data = [];
+            if (vertexList) {
+                vertexList.forEach((vert) => {
+                    this.addVertex(vert);
+                });
+            }
+        }
+    }
+    function VertElm(def) {
+        return new VertexElement(def);
     }
     class VertexElement extends Element {
         constructor(def) {
@@ -158,6 +173,7 @@
         }
     }
     class Tris extends Element {
+        // Builder pattern || direct construction.
         addTri(newTri) {
             this.addBytes(Integer * 3);
             this.triWindings.push(newTri);
@@ -178,14 +194,38 @@
     function exportIt() {
         //todo: Eventually, only export selected things as an option.
         //! Here we are trying to make a triangle.
+        const masterContainer = new B3d();
         const rootNode = new Node("root_node");
-        const triangTris = new Tris([
+        const triangleVertices = new Verts([
+            VertElm({
+                position: FVec3(-1, 0, 0),
+                normal: FVec3(0, 0, 1),
+                textureCoordinates: FVec2(0, 0)
+            }),
+            VertElm({
+                position: FVec3(1, 0, 0),
+                normal: FVec3(0, 0, 1),
+                textureCoordinates: FVec2(1, 0)
+            }),
+            VertElm({
+                position: FVec3(0, 1, 0),
+                normal: FVec3(0, 0, 1),
+                textureCoordinates: FVec2(0.5, 1)
+            }),
+        ]);
+        const triangleTris = new Tris([
             Ivec3(0, 1, 2)
         ]);
+        const coolMesh = new Mesh();
+        coolMesh.setVerts(triangleVertices);
+        coolMesh.setTris(triangleTris);
+        rootNode.addChild(coolMesh);
+        masterContainer.addRootNode(rootNode);
+        print("omega size: " + masterContainer.byteSize);
         // Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
         //   content: finalizedModel.buffer
         // })
-        print("exported minecart.");
+        print("exported minecart. (this is a lie)");
     }
     function parseMesh(mesh) {
         console.log("--------------------------------");
