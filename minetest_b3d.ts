@@ -31,6 +31,7 @@ const Char    = 1
 const Integer = 4
 const Float   = 4
 const HEADER_WIDTH = (Char * 4)
+const BYTE_COUNT_WIDTH = Integer
 
 // Special class to ensure it is known that it's integral.
 function Ivec3(x: number, y: number, z: number) {
@@ -214,7 +215,7 @@ class B3d extends Element {
   // Plus integer because this includes the size of the version number.
   byteSize: number = Integer
 
-  literalByteSize: number = (Char * 4) + Integer + Integer
+  literalByteSize: number = HEADER_WIDTH + Integer + Integer
 
   version: number = 1
   rootNode: Node = null

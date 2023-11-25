@@ -30,6 +30,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     const Integer = 4;
     const Float = 4;
     const HEADER_WIDTH = (Char * 4);
+    const BYTE_COUNT_WIDTH = Integer;
     // Special class to ensure it is known that it's integral.
     function Ivec3(x, y, z) {
         return new IntegerVec3(x, y, z);
@@ -182,7 +183,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
             this.header = "BB3D";
             // Plus integer because this includes the size of the version number.
             this.byteSize = Integer;
-            this.literalByteSize = (Char * 4) + Integer + Integer;
+            this.literalByteSize = HEADER_WIDTH + Integer + Integer;
             this.version = 1;
             this.rootNode = null;
         }
