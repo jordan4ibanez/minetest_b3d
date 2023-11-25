@@ -233,8 +233,7 @@ class B3d extends Element {
 class Node extends Element {
   readonly header: string = "NODE"
 
-  byteSize: number = ((3 + 3 + 4) * Float)
-  
+  byteSize: number = (3 + 3 + 4) * Float
   literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
 
 
@@ -268,8 +267,9 @@ class Node extends Element {
   }
 
   addChild(nodeOrElement: Node | NodeElement) {
+    this.addBytes(nodeOrElement.byteSize)
+    this.addLiteralBytes(nodeOrElement.literalByteSize)
     this.children.push(nodeOrElement)
-    this.addBytes(nodeOrElement.byteSize + HEADER_WIDTH)
   }
 }
 
@@ -280,7 +280,9 @@ class NodeElement extends Element {
 
 class Mesh extends NodeElement {
   readonly header: string = "MESH"
-  byteSize: number = (Integer * 1) //+ (Char * 4)
+  byteSize: number = Integer
+  literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
+
   readonly brush: number = -1
   vrts: Verts = null
   tris: Tris = null
@@ -289,21 +291,25 @@ class Mesh extends NodeElement {
     if (this.vrts !== null) {
       throw new Error("Cannot reassign vrts into a Mesh!")
     }
-    this.addBytes(newVert.byteSize + HEADER_WIDTH)
+    this.addBytes(newVert.byteSize)
+    this.addLiteralBytes(newVert.literalByteSize)
     this.vrts = newVert
   }
   setTris(newTris: Tris) {
     if (this.tris !== null) {
       throw new Error("Cannot reassign tris into a Mesh!")
     }
-    this.addBytes(newTris.byteSize + HEADER_WIDTH)
+    this.addBytes(newTris.byteSize)
+    this.addLiteralBytes(newTris.literalByteSize)
     this.tris = newTris
   }
 }
 
 class Verts extends Element {
   readonly header: string = "VRTS"
-  byteSize: number = Integer + Integer + (Integer * 2) + (Char * 4)
+  byteSize: number = Integer * 3
+  literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
+
   readonly flags = 1
   readonly textureCoordinateSets = 1
   readonly textureCoordinateSetSize = 2
@@ -314,6 +320,7 @@ class Verts extends Element {
 
   addVertex(element: VertexElement) {
     this.addBytes(element.byteSize)
+    this.addLiteralBytes(element.literalByteSize)
     this.data.push(element)
   }
   constructor(vertexList?: Array<VertexElement>) {
@@ -336,7 +343,8 @@ function VertElm(def: VertexElementDefinition) {
   return new VertexElement(def)
 }
 class VertexElement extends Element {
-  readonly byteSize: number = (Float * 3) + (Float * 3) + (Float * 2)
+  readonly byteSize: number = (3 + 3 + 2) * Float
+  readonly literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
   readonly position: Vec3;
   readonly normal: Vec3;
   readonly textureCoordinates: Vec2;
@@ -351,7 +359,8 @@ class VertexElement extends Element {
 
 class Tris extends Element {
   readonly header: string = "TRIS"
-  byteSize: number = Integer + (Char * 4)
+  byteSize: number = Integer
+  literalByteSize: number = this.byteSize + HEADER_WIDTH + BYTE_COUNT_WIDTH
   readonly brushID = -1
   triWindings: Array<IntegerVec3> = []
 
@@ -359,8 +368,8 @@ class Tris extends Element {
 
   addTri(newTri: IntegerVec3) {
     this.addBytes(Integer * 3)
+    this.addLiteralBytes(Integer * 3)
     this.triWindings.push(newTri)
-    print("new bytesize in tri: " + this.byteSize)
   }
 
   constructor(windingList?: Array<IntegerVec3>) {
