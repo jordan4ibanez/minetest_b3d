@@ -23,12 +23,18 @@
     const Char = 1;
     const Integer = 4;
     const Float = 4;
-    class Element {
-        constructor() {
-            this.byteSize = 0;
-        }
-        addBytes(byteSize) {
-            this.byteSize += byteSize;
+    // Special class to ensure it is known that it's integral.
+    function Ivec3(x, y, z) {
+        return new IntegerVec3(x, y, z);
+    }
+    class IntegerVec3 {
+        constructor(x, y, z) {
+            this.x = 0;
+            this.y = 0;
+            this.z = 0;
+            this.x = x;
+            this.y = y;
+            this.z = z;
         }
     }
     class Vec2 {
@@ -56,11 +62,25 @@
             this.w = w;
         }
     }
+    class Element {
+        constructor() {
+            this.byteSize = 0;
+        }
+        addBytes(byteSize) {
+            this.byteSize += byteSize;
+        }
+    }
+    // Master container class.
     class B3d extends Element {
         constructor() {
             super(...arguments);
             this.byteSize = (1 * 4);
             this.version = 1;
+            this.rootNode = null;
+        }
+        addRootNode(node) {
+            this.addBytes(node.byteSize);
+            this.rootNode = node;
         }
     }
     class Node extends Element {
@@ -79,6 +99,10 @@
         setParent(node) {
             this.parent = node;
             this.parent.addBytes(this.byteSize);
+            // Recurse through the tree to add all bytes.
+            if (this.parent.parent) {
+                this.parent.parent.addBytes(this.byteSize);
+            }
         }
         addChild(nodeOrElement) {
             this.children.push(nodeOrElement);
@@ -92,6 +116,22 @@
             super(...arguments);
             this.byteSize = Integer * 1;
             this.brush = -1;
+            this.vrts = null;
+            this.tris = null;
+        }
+        setVerts(newVert) {
+            if (this.vrts !== null) {
+                throw new Error("Cannot reassign vrts into a Mesh!");
+            }
+            this.addBytes(newVert.byteSize);
+            this.vrts = newVert;
+        }
+        setTris(newTris) {
+            if (this.tris !== null) {
+                throw new Error("Cannot reassign tris into a Mesh!");
+            }
+            this.addBytes(newTris.byteSize);
+            this.tris = newTris;
         }
     }
     class Verts extends Element {
@@ -117,10 +157,31 @@
             this.textureCoordinates = def.textureCoordinates;
         }
     }
+    class Tris extends Element {
+        addTri(newTri) {
+            this.addBytes(Integer * 3);
+            this.triWindings.push(newTri);
+            print("new bytesize in tri: " + this.byteSize);
+        }
+        constructor(windingList) {
+            super();
+            this.byteSize = Integer;
+            this.brushID = -1;
+            this.triWindings = [];
+            if (windingList) {
+                windingList.forEach((winding) => {
+                    this.addTri(winding);
+                });
+            }
+        }
+    }
     function exportIt() {
         //todo: Eventually, only export selected things as an option.
-        print("I am a potato");
         //! Here we are trying to make a triangle.
+        const rootNode = new Node("root_node");
+        const triangTris = new Tris([
+            Ivec3(0, 1, 2)
+        ]);
         // Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
         //   content: finalizedModel.buffer
         // })

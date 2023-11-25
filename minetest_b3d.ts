@@ -32,6 +32,9 @@ const Integer = 4
 const Float   = 4
 
 // Special class to ensure it is known that it's integral.
+function Ivec3(x: number, y: number, z: number) {
+  return new IntegerVec3(x,y,z)
+}
 class IntegerVec3 {
   x: number = 0
   y: number = 0
@@ -186,9 +189,12 @@ class Tris extends Element {
   readonly brushID = -1
   triWindings: Array<IntegerVec3> = []
 
+  // Builder pattern || direct construction.
+
   addTri(newTri: IntegerVec3) {
     this.addBytes(Integer * 3)
     this.triWindings.push(newTri)
+    print("new bytesize in tri: " + this.byteSize)
   }
 
   constructor(windingList?: Array<IntegerVec3>) {
@@ -209,8 +215,10 @@ function exportIt() {
 
   const rootNode = new Node("root_node");
 
-  const triangTris = new Tris()
-  triangTris.addTri(new Vec3)
+  const triangTris = new Tris([
+    Ivec3(0,1,2)
+  ])
+
 
 
 
