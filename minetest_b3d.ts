@@ -20,178 +20,98 @@ const cube_face_normals = {
   up:    [ 0,  1,  0],
   down:  [ 0, -1,  0],
 }
-  
-  // A way to encode strings to utf8. (uint8)
+
+// A way to encode strings to utf8. (uint8)
   // Convert string literals to uint8[] (Uint8Array).
 const encoder = new TextEncoder();
 
-// class WorkerContainer {
-    
-//     // MEGA resizeable buffer.
-//     buffer = new ArrayBuffer(0, {
-//       // ~128 MB limit. A HUGE MODEL!
-//       maxByteLength: 1000 * 1000 * 128
-//     })
+// Makes this more readable
+const Byte    = 1
+const Char    = 1
+const Integer = 4
+const Float   = 4
+
+class Element {
+  byteSize = 0
+  addBytes(byteSize: number) {
+    this.byteSize += byteSize
+  }
+}
+
+class Vec2 {
+  byteSize = Float * 2
+  x: number = 0
+  y: number = 0
+  constructor(x: number, y: number) {
+    this.x = x
+    this.y = y
+  }
+}
+
+class Vec3 extends Vec2 {
+  byteSize: number = Float * 3
+  z: number = 0
+  constructor(x: number, y: number, z: number) {
+    super(x,y)
+    this.z = z
+  }
+}
+
+class Quaternion extends Vec3 {
+  byteSize: number = Float * 4
+  w: number = 0
+  constructor(x: number, y: number, z: number, w: number) {
+    super(x,y,z)
+    this.w = w
+  }
+}
+
+class B3d extends Element{
+  byteSize: number = (1 * 4)
+  version: number = 1
+}
+
+class Node extends Element {
+  byteSize: number = (3 * 3 * 4) * Float
+  readonly name: string
+  position: Vec3 = new Vec3(0,0,0)
+  scale: Vec3 = new Vec3(1,1,1)
+  rotation: Quaternion = new Quaternion(0,0,0,1)
+
+  // Allow rapidly indexing through the tree.
+  parent: Node = null
+
+  children: Array<Node | NodeElement> = []
+
+  constructor(name: string) {
+    super()
+    this.name = name
+    this.addBytes(name.length * Char)
+  }
+
+  setParent(node: Node) {
+    this.parent = node
+    this.parent.addBytes(this.byteSize)
+  }
+
+  addChild(nodeOrElement: Node | NodeElement) {
+    this.children.push(nodeOrElement)
+  }
+}
+
+// Specific classification to filter objects that Node can hold.
+class NodeElement extends Element {
+}
+
+class Mesh extends NodeElement {
+  byteSize: number = Integer * 1
+  brush: number = -1
   
-//     // A nice view of the buffer. Brings additional features.
-//     view = new DataView(this.buffer)
-  
-//     byteLength() {
-//       return this.buffer.byteLength
-//     }
-    
-//     getCurrent(byteSize) {
-//       return this.buffer.byteLength - byteSize
-//     }
-  
-//     grow(bytes) {
-//       this.buffer.resize(this.buffer.byteLength + bytes)
-//     }
-  
-//     //* Disabled in case I accidentally call it, this is JS after all.
-//     // reset() {
-//     //   this.buffer.resize(0)
-//     // }
-  
-//     appendHeader(name, numberOfElements) {
-//       this.appendString(name)
-//       this.appendInt32(numberOfElements)
-//     }
-  
-//     appendQuaternion(x,y,z,w) {
-//       // W is actually first but don't tell anyone.
-//       this.appendFloat(w)
-//       this.appendFloat(x)
-//       this.appendFloat(y)
-//       this.appendFloat(z)
-//     }
-    
-//     appendVec2(x,y) {
-//       this.appendFloat(x)
-//       this.appendFloat(y)
-//     }
-  
-//     appendVec3(x,y,z) {
-//       this.appendFloat(x)
-//       this.appendFloat(y)
-//       this.appendFloat(z)
-//     }
-  
-//     appendFloat(float) {
-//       const sizeInBytes = 4
-//       this.grow(sizeInBytes)
-//       this.view.setFloat32(this.getCurrent(sizeInBytes), float, true)
-//     }
-  
-//   appendInt32(int32) {
-//     const sizeInBytes = 4
-//     this.grow(sizeInBytes)
-//     this.view.setInt32(this.getCurrent(sizeInBytes), int32, true)
-//   }
+}
 
-//   appendInt8(int8) {
-//     const sizeInBytes = 1
-//     this.grow(sizeInBytes)
-//     this.view.setInt8(this.getCurrent(sizeInBytes), int8, true)
-//   }
+class MeshElement extends Element {
 
-//   appendChar(charInt8) {
-//     this.appendInt8(charInt8)
-//   }
-
-//   appendString(string) {
-//     const encodedStringArray = encoder.encode(string)
-//     encodedStringArray.forEach((char) => {
-//       this.appendChar(char)
-//     })
-//   }
-
-// }
-
-// These ones get turned into a new object over and over.
-// let tempContainer = new WorkerContainer()
-// let nodeContainer = new WorkerContainer()
-// let meshContainer = new WorkerContainer()
-// let verticesContainer = new WorkerContainer()
-// let trisContainer = new WorkerContainer()
-
-
-// const shellContainer     = new WorkerContainer()
-// const textureCoordinates = new WorkerContainer()
-// const masterContainer    = new WorkerContainer()
-
-
-// function encaseChunk(chunkName, encasingContainer, bufferToBeEncased) {
-//   encasingContainer.appendString(chunkName);
-//   encasingContainer.appendInt32(bufferToBeEncased.byteLength());
-//   for (const byte of new Uint8Array(bufferToBeEncased.buffer)) {
-//     encasingContainer.appendInt8(byte)
-//   }
-// }
-
-// function finalizeChunk(chunkName, chunkToBeFinalized) {
-//   const tempChunk = new WorkerContainer()
-//   tempChunk.appendString(chunkName)
-//   tempChunk.appendInt32(chunkToBeFinalized.byteLength());
-//   const startIndex = tempChunk.byteLength()
-//   tempChunk.grow(chunkToBeFinalized.byteLength())
-//   for (let i = 0; i < chunkToBeFinalized.byteLength(); i++) {
-//     tempChunk.view.setInt8(i + startIndex, chunkToBeFinalized.view.getInt8(i))
-//   }
-//   return tempChunk
-// }
-
-// // Gives back a MESH node!
-// function combineVertsTris(verts, tris) {
-//   const tempChunk = new WorkerContainer()
-//   tempChunk.appendString("MESH")
-//   tempChunk.appendInt32(verts.byteLength() + tris.byteLength())
-//   let startIndex = tempChunk.byteLength()
-//   tempChunk.grow(verts.byteLength())
-//   for (let i = 0; i < verts.byteLength(); i++) {
-//     tempChunk.view.setInt8(i + startIndex, verts.view.getInt8(i))
-//   }
-//   startIndex = tempChunk.byteLength()
-//   tempChunk.grow(tris.byteLength())
-//   for (let i = 0; i < tris.byteLength(); i++) {
-//     tempChunk.view.setInt8(i + startIndex, verts.view.getInt8(i))
-//   }
-//   return tempChunk
-// }
-
-// function combineMeshIntoNode(nodeNode, meshNode) {
-//   const tempChunk = new WorkerContainer()
-//   tempChunk.appendString("NODE")
-//   tempChunk.appendInt32(nodeNode.byteLength() + meshNode.byteLength())
-//   let startIndex = tempChunk.byteLength()
-//   tempChunk.grow(nodeNode.byteLength())
-//   for (let i = 0; i < nodeNode.byteLength(); i++) {
-//     tempChunk.view.setInt8(i + startIndex, nodeNode.view.getInt8(i))
-//   }
-//   startIndex = tempChunk.byteLength()
-//   tempChunk.grow(meshNode.byteLength())
-//   for (let i = 0; i < meshNode.byteLength(); i++) {
-//     tempChunk.view.setInt8(i + startIndex, meshNode.view.getInt8(i))
-//   }
-//   return tempChunk
-// }
-
-// function resetTempContainer() {
-//   tempContainer = new WorkerContainer()
-// }
-
-// function completeInteraction(finalNode) {
-//   const tempChunk = new WorkerContainer()
-//   tempChunk.appendString("BB3D")
-//   tempChunk.appendInt32(finalNode.byteLength() + 4)
-//   tempChunk.appendInt32(1)
-//   let startIndex = tempChunk.byteLength()
-//   tempChunk.grow(finalNode.byteLength())
-//   for (let i = 0; i < finalNode.byteLength(); i++) {
-//     tempChunk.view.setInt8(i + startIndex, finalNode.view.getInt8(i))
-//   }
-//   return tempChunk
-// }
+}
 
 function exportIt() {
   //todo: Eventually, only export selected things as an option.
