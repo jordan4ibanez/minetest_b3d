@@ -2,7 +2,7 @@
 
 // This is basically the TS equivalent of adding local in front of everything in lua.
 
-var button;
+var button: Action;
 const print = console.log;
 
 
@@ -95,6 +95,11 @@ class BufferContainer {
     this.view = new DataView(this.buffer)
   }
 
+  // Didn't even know you could make methods private in TS.
+  #debugIndexing() {
+    print(`index: ${this.index} | maxIndex: ${this.buffer.byteLength}`)
+  }
+
 
   appendHeader(name: string, containerByteSize: number) {
     this.appendString(name)
@@ -157,18 +162,21 @@ class BufferContainer {
   }
 
   appendFloat(float: number) {
+    this.#debugIndexing()
     this.view.setFloat32(this.index, float, true)
-    this.index += 1//Float
+    this.index += Float
   }
   
   appendInt32(int32: number) {
+    this.#debugIndexing()
     this.view.setInt32(this.index, int32, true)
-    this.index += 1//Integer
+    this.index += Integer
   }
 
   appendInt8(int8: number) {
+    this.#debugIndexing()
     this.view.setInt8(this.index, int8)
-    this.index += 1//Byte
+    this.index += Byte
   }
 
   appendChar(charInt8: number) {
@@ -189,17 +197,25 @@ class BufferContainer {
 
 class Element {
   header: string
+  // Bytesize is the size of the array it holds.
   byteSize = 0
+  // Literal bytesize is the total size of this element. ALL ITEMS. Yes, even the header and byteSize elements!
+  literalByteSize = 0
   addBytes(byteSize: number) {
     this.byteSize += byteSize
+    this.literalByteSize += byteSize
   }
 }
 
 // Master container class.
 class B3d extends Element {
   readonly header: string = "BB3D"
+  
   // Plus integer because this includes the size of the version number.
   byteSize: number = Integer
+
+  literalByteSize: number = (Char * 4) + Integer + Integer
+
   version: number = 1
   rootNode: Node = null
   addRootNode(node: Node) {
@@ -349,9 +365,10 @@ function finalize(container: B3d): ArrayBuffer {
   // A hardcode for now!
 
   // Char * 4 to fit the BB3D string.
-  const buffer = new BufferContainer(container.byteSize + (Char * 4))
+  const buffer = new BufferContainer(container.literalByteSize)
   
   print(1)
+  print(container.header)
   buffer.appendString(container.header)
   print(2)
   buffer.appendInt32(container.byteSize)
@@ -448,7 +465,7 @@ function exportIt() {
 
   const finishedBuffer: ArrayBuffer = finalize(masterContainer)
   
-  print("actual size: " + masterContainer.byteSize)
+  print("actual size: " + finishedBuffer.byteLength)
 
 
 

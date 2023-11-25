@@ -1,5 +1,11 @@
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
 (function () {
     // This is basically the TS equivalent of adding local in front of everything in lua.
+    var _BufferContainer_instances, _BufferContainer_debugIndexing;
     var button;
     const print = console.log;
     const IdentifierMeshParts = {
@@ -72,6 +78,7 @@
     //! BEGIN ARRAYBUFFER UTILITY.
     class BufferContainer {
         constructor(byteLength) {
+            _BufferContainer_instances.add(this);
             this.index = 0;
             this.buffer = new ArrayBuffer(byteLength);
             // A nice view of the buffer. Brings additional features.
@@ -128,16 +135,19 @@
             this.appendFloat(z);
         }
         appendFloat(float) {
+            __classPrivateFieldGet(this, _BufferContainer_instances, "m", _BufferContainer_debugIndexing).call(this);
             this.view.setFloat32(this.index, float, true);
-            this.index += 1; //Float
+            this.index += Float;
         }
         appendInt32(int32) {
+            __classPrivateFieldGet(this, _BufferContainer_instances, "m", _BufferContainer_debugIndexing).call(this);
             this.view.setInt32(this.index, int32, true);
-            this.index += 1; //Integer
+            this.index += Integer;
         }
         appendInt8(int8) {
+            __classPrivateFieldGet(this, _BufferContainer_instances, "m", _BufferContainer_debugIndexing).call(this);
             this.view.setInt8(this.index, int8);
-            this.index += 1; //Byte
+            this.index += Byte;
         }
         appendChar(charInt8) {
             this.appendInt8(charInt8);
@@ -149,13 +159,20 @@
             });
         }
     }
+    _BufferContainer_instances = new WeakSet(), _BufferContainer_debugIndexing = function _BufferContainer_debugIndexing() {
+        print(`index: ${this.index} | maxIndex: ${this.buffer.byteLength}`);
+    };
     //! BEGIN B3D.
     class Element {
         constructor() {
+            // Bytesize is the size of the array it holds.
             this.byteSize = 0;
+            // Literal bytesize is the total size of this element. ALL ITEMS. Yes, even the header and byteSize elements!
+            this.literalByteSize = 0;
         }
         addBytes(byteSize) {
             this.byteSize += byteSize;
+            this.literalByteSize += byteSize;
         }
     }
     // Master container class.
@@ -165,6 +182,7 @@
             this.header = "BB3D";
             // Plus integer because this includes the size of the version number.
             this.byteSize = Integer;
+            this.literalByteSize = (Char * 4) + Integer + Integer;
             this.version = 1;
             this.rootNode = null;
         }
@@ -286,8 +304,9 @@
     function finalize(container) {
         // A hardcode for now!
         // Char * 4 to fit the BB3D string.
-        const buffer = new BufferContainer(container.byteSize + (Char * 4));
+        const buffer = new BufferContainer(container.literalByteSize);
         print(1);
+        print(container.header);
         buffer.appendString(container.header);
         print(2);
         buffer.appendInt32(container.byteSize);
@@ -361,7 +380,7 @@
         // rootNode.addChild(coolMesh)
         // masterContainer.addRootNode(rootNode)
         const finishedBuffer = finalize(masterContainer);
-        print("actual size: " + masterContainer.byteSize);
+        print("actual size: " + finishedBuffer.byteLength);
         Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
             content: finishedBuffer
         });
