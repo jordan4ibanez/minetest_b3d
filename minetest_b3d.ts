@@ -100,12 +100,31 @@ class BufferContainer {
     this.appendInt32(containerByteSize)
   }
 
-  appendQuaternion(x: number, y: number, z: number, w: number) {
+
+  appendQuaternion(quat: Quaternion) {
+    // W is actually first but don't tell anyone.
+    this.appendFloat(quat.w)
+    this.appendFloat(quat.x)
+    this.appendFloat(quat.y)
+    this.appendFloat(quat.z)
+  }
+
+  appendQuaternionLiteral(x: number, y: number, z: number, w: number) {
     // W is actually first but don't tell anyone.
     this.appendFloat(w)
     this.appendFloat(x)
     this.appendFloat(y)
     this.appendFloat(z)
+  }
+
+  appendIVec2(x: number, y: number) {
+    this.appendInt32(x)
+    this.appendInt32(y)
+  }
+  appendIVec3(x: number, y: number, z: number) {
+    this.appendInt32(x)
+    this.appendInt32(y)
+    this.appendInt32(z)
   }
   
   appendVec2(x: number, y: number) {
@@ -113,7 +132,13 @@ class BufferContainer {
     this.appendFloat(y)
   }
 
-  appendVec3(x: number, y: number, z: number) {
+  appendVec3(vec: Vec3) {
+    this.appendFloat(vec.x)
+    this.appendFloat(vec.y)
+    this.appendFloat(vec.z)
+  }
+
+  appendVector3(x: number, y: number, z: number) {
     this.appendFloat(x)
     this.appendFloat(y)
     this.appendFloat(z)
@@ -151,6 +176,7 @@ class BufferContainer {
 //! BEGIN B3D.
 
 class Element {
+  header: string
   byteSize = 0
   addBytes(byteSize: number) {
     this.byteSize += byteSize
@@ -159,21 +185,23 @@ class Element {
 
 // Master container class.
 class B3d extends Element {
-  byteSize: number = (1 * 4)
+  readonly header: string = "BB3D"
+  // Plus integer because this includes the size of the version number.
+  byteSize: number = Integer
   version: number = 1
   rootNode: Node = null
   addRootNode(node: Node) {
     if (this.rootNode !== null) {
       throw new Error("Cannot set the root note on a B3d container more than once!")
     }
-    // Plus integer because this includes the size of the version number.
-    this.addBytes(node.byteSize + Integer)
+    this.addBytes(node.byteSize)
     this.rootNode = node
   }
 }
 
 class Node extends Element {
-  byteSize: number = (3 * 3 * 4) * Float
+  readonly header: string = "NODE"
+  byteSize: number = ((3 * 3 * 4) * Float) + (Char * 4)
   readonly name: string
   position: Vec3 = new Vec3(0,0,0)
   scale: Vec3 = new Vec3(1,1,1)
@@ -209,7 +237,8 @@ class NodeElement extends Element {
 }
 
 class Mesh extends NodeElement {
-  byteSize: number = Integer * 1
+  readonly header: string = "MESH"
+  byteSize: number = (Integer * 1) + (Char * 4)
   readonly brush: number = -1
   vrts: Verts = null
   tris: Tris = null
@@ -231,7 +260,8 @@ class Mesh extends NodeElement {
 }
 
 class Verts extends Element {
-  byteSize: number = Integer + Integer + (Integer * 2)
+  readonly header: string = "VRTS"
+  byteSize: number = Integer + Integer + (Integer * 2) + (Char * 4)
   readonly flags = 1
   readonly textureCoordinateSets = 1
   readonly textureCoordinateSetSize = 2
@@ -278,6 +308,7 @@ class VertexElement extends Element {
 }
 
 class Tris extends Element {
+  readonly header: string = "TRIS"
   byteSize: number = Integer
   readonly brushID = -1
   triWindings: Array<IntegerVec3> = []
@@ -300,13 +331,42 @@ class Tris extends Element {
   }
 }
 
-function finalize(masterContainer: B3d): ArrayBuffer {
-  const buffer = new ArrayBuffer(masterContainer.byteSize)
-  const view = new DataView(buffer)
+function finalize(container: B3d): ArrayBuffer {
+
+  // A hardcode for now!
+
+  // Char * 4 to fit the BB3D string.
+  const buffer = new BufferContainer(container.byteSize + (Char * 4))
+  
+  buffer.appendString(container.header)
+  buffer.appendInt32(container.byteSize)
+  buffer.appendInt32(container.version)
+
+  const rootNode = container.rootNode
+  
+  buffer.appendString(rootNode.name)
+  buffer.appendInt32(rootNode.byteSize)
+  buffer.appendVec3(rootNode.position)
+  buffer.appendVec3(rootNode.scale)
+  buffer.appendQuaternion(rootNode.rotation)
+
+  const meshElement = rootNode.children[0]
+
+  if (meshElement) {
+    if (meshElement instanceof Mesh) {
+
+      print("we got it!")
+      buffer.appendInt32(meshElement.byteSize)
+      buffer.appendInt32(meshElement.brush)
 
 
 
-  return buffer
+    }
+  }
+
+
+
+  return buffer.buffer
 }
 
 
@@ -343,17 +403,17 @@ function exportIt() {
   const coolMesh = new Mesh()
   coolMesh.setVerts(triangleVertices)
   coolMesh.setTris(triangleTris)
-
   rootNode.addChild(coolMesh)
-
   masterContainer.addRootNode(rootNode)
+
+  const finishedBuffer: ArrayBuffer = finalize(masterContainer)
 
   print("omega size: " + masterContainer.byteSize)
 
 
 
   // Blockbench.writeFile("/home/jordan/.minetest/games/forgotten-lands/mods/minecart/models/minecart.b3d", {
-  //   content: finalizedModel.buffer
+  //   content: finishedBuffer
   // })
 
   print("exported minecart. (this is a lie)")
