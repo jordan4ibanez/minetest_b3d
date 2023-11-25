@@ -80,6 +80,76 @@ class Quaternion extends Vec3 {
   }
 }
 
+//! BEGIN ARRAYBUFFER UTILITY.
+
+class BufferContainer {
+    
+  index: 0
+  buffer: ArrayBuffer
+  view: DataView
+  
+  constructor(byteLength: number) {
+    this.buffer = new ArrayBuffer(byteLength)
+    // A nice view of the buffer. Brings additional features.
+    this.view = new DataView(this.buffer)
+  }
+
+
+  appendHeader(name: string, containerByteSize: number) {
+    this.appendString(name)
+    this.appendInt32(containerByteSize)
+  }
+
+  appendQuaternion(x: number, y: number, z: number, w: number) {
+    // W is actually first but don't tell anyone.
+    this.appendFloat(w)
+    this.appendFloat(x)
+    this.appendFloat(y)
+    this.appendFloat(z)
+  }
+  
+  appendVec2(x: number, y: number) {
+    this.appendFloat(x)
+    this.appendFloat(y)
+  }
+
+  appendVec3(x: number, y: number, z: number) {
+    this.appendFloat(x)
+    this.appendFloat(y)
+    this.appendFloat(z)
+  }
+
+  appendFloat(float: number) {
+    this.view.setFloat32(this.index, float, true)
+    this.index += Float
+  }
+  
+  appendInt32(int32: number) {
+    this.view.setInt32(this.index, int32, true)
+    this.index += Integer
+  }
+
+  appendInt8(int8: number) {
+    this.view.setInt8(this.index, int8)
+    this.index += Byte
+  }
+
+  appendChar(charInt8: number) {
+    this.appendInt8(charInt8)
+  }
+
+  appendString(string: string) {
+    const encodedStringArray: Uint8Array = encoder.encode(string)
+    encodedStringArray.forEach((char: number) => {
+      this.appendChar(char)
+    })
+  }
+
+}
+
+
+//! BEGIN B3D.
+
 class Element {
   byteSize = 0
   addBytes(byteSize: number) {
@@ -93,7 +163,11 @@ class B3d extends Element {
   version: number = 1
   rootNode: Node = null
   addRootNode(node: Node) {
-    this.addBytes(node.byteSize)
+    if (this.rootNode !== null) {
+      throw new Error("Cannot set the root note on a B3d container more than once!")
+    }
+    // Plus integer because this includes the size of the version number.
+    this.addBytes(node.byteSize + Integer)
     this.rootNode = node
   }
 }
@@ -224,6 +298,15 @@ class Tris extends Element {
       })
     }
   }
+}
+
+function finalize(masterContainer: B3d): ArrayBuffer {
+  const buffer = new ArrayBuffer(masterContainer.byteSize)
+  const view = new DataView(buffer)
+
+
+
+  return buffer
 }
 
 

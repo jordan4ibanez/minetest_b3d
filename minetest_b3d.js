@@ -85,6 +85,9 @@
             this.rootNode = null;
         }
         addRootNode(node) {
+            if (this.rootNode !== null) {
+                throw new Error("Cannot set the root note on a B3d container more than once!");
+            }
             this.addBytes(node.byteSize);
             this.rootNode = node;
         }
