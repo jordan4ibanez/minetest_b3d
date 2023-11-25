@@ -31,13 +31,6 @@ const Char    = 1
 const Integer = 4
 const Float   = 4
 
-class Element {
-  byteSize = 0
-  addBytes(byteSize: number) {
-    this.byteSize += byteSize
-  }
-}
-
 class Vec2 {
   byteSize = Float * 2
   x: number = 0
@@ -66,9 +59,22 @@ class Quaternion extends Vec3 {
   }
 }
 
-class B3d extends Element{
+class Element {
+  byteSize = 0
+  addBytes(byteSize: number) {
+    this.byteSize += byteSize
+  }
+}
+
+// Master container class.
+class B3d extends Element {
   byteSize: number = (1 * 4)
   version: number = 1
+  rootNode: Node = null
+  addRootNode(node: Node) {
+    this.addBytes(node.byteSize)
+    this.rootNode = node
+  }
 }
 
 class Node extends Element {
@@ -80,7 +86,6 @@ class Node extends Element {
 
   // Allow rapidly indexing through the tree.
   parent: Node = null
-
   children: Array<Node | NodeElement> = []
 
   constructor(name: string) {
@@ -92,6 +97,10 @@ class Node extends Element {
   setParent(node: Node) {
     this.parent = node
     this.parent.addBytes(this.byteSize)
+    // Recurse through the tree to add all bytes.
+    if (this.parent.parent) {
+      this.parent.parent.addBytes(this.byteSize)
+    }
   }
 
   addChild(nodeOrElement: Node | NodeElement) {
@@ -101,22 +110,78 @@ class Node extends Element {
 
 // Specific classification to filter objects that Node can hold.
 class NodeElement extends Element {
+
 }
 
 class Mesh extends NodeElement {
   byteSize: number = Integer * 1
-  brush: number = -1
-  
+  readonly brush: number = -1
+  vrts: Verts = null
+  tris: Tris = null
+
+  setVerts(newVert: Verts) {
+    if (this.vrts !== null) {
+      throw new Error("Cannot reassign vrts into a Mesh!")
+    }
+    this.addBytes(newVert.byteSize)
+    this.vrts = newVert
+  }
+  setTris(newTris: Tris) {
+    if (this.tris !== null) {
+      throw new Error("Cannot reassign tris into a Mesh!")
+    }
+    this.addBytes(newTris.byteSize)
+    this.tris = newTris
+  }
 }
 
-class MeshElement extends Element {
+class Verts extends Element {
+  byteSize: number = Integer + Integer + (Integer * 2)
+  readonly flags = 1
+  readonly textureCoordinateSets = 1
+  readonly textureCoordinateSetSize = 2
 
+  data: Array<VertexElement> = []
+
+  addVertex(element: VertexElement) {
+    this.addBytes(element.byteSize)
+    this.data.push(element)
+  }
 }
+
+interface VertexElementDefinition {
+  position: Vec3
+  normal: Vec3
+  textureCoordinates: Vec2
+}
+
+class VertexElement extends Element {
+  readonly byteSize: number = (Float * 3) + (Float * 3) + (Float * 2)
+  readonly position: Vec3;
+  readonly normal: Vec3;
+  readonly textureCoordinates: Vec2;
+
+  constructor(def: VertexElementDefinition) {
+    super()
+    this.position = def.position
+    this.normal = def.normal
+    this.textureCoordinates = def.textureCoordinates
+  }
+}
+
+class Tris extends Element {
+  byteSize: number = Integer
+  readonly brushID = -1
+  triWindings: Array<Vec3> = []
+  addTri(newTri: Vec3) {
+    this.addBytes(Float * 3)
+    this.triWindings.push(newTri)
+  }
+}
+
 
 function exportIt() {
   //todo: Eventually, only export selected things as an option.
-
-  
   //! Here we are trying to make a triangle.
 
 
