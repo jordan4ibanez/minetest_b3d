@@ -156,11 +156,21 @@ class Verts extends Element {
   readonly textureCoordinateSets = 1
   readonly textureCoordinateSetSize = 2
 
+  // Builder pattern || direct construction.
+
   data: Array<VertexElement> = []
 
   addVertex(element: VertexElement) {
     this.addBytes(element.byteSize)
     this.data.push(element)
+  }
+  constructor(vertexList?: Array<VertexElement>) {
+    super()
+    if (vertexList) {
+      vertexList.forEach((vert: VertexElement) => {
+        this.addVertex(vert)
+      })
+    }
   }
 }
 
@@ -215,7 +225,9 @@ function exportIt() {
 
   const rootNode = new Node("root_node");
 
-  const triangTris = new Tris([
+  const triangleVertices = new Verts()
+
+  const triangleTris = new Tris([
     Ivec3(0,1,2)
   ])
 
