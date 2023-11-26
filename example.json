@@ -1,0 +1,24 @@
+{
+  "format": "BB3DJSON",
+  "version": 1,
+  "NODE": {
+    "position": [0,0,0],
+    "scale": [1,1,1],
+    "rotation": [1,0,0,0],
+    "MESH": {
+      "brush": -1,
+      "VRTS": {
+        "flags": 0,
+        "data": [
+          0,0,0
+        ]
+      },
+      "TRIS": {
+        "brush": -1,
+        "vertices": [
+          0,1,2
+        ]
+      }
+    }
+  }
+}
